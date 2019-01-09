@@ -37,6 +37,9 @@
 # Version of the Live OS generator:
 VERSION="1.3.0.1"
 
+# Source Directory:
+SRC="`pwd`"
+
 # Directory where our live tools are stored:
 LIVE_TOOLDIR=${LIVE_TOOLDIR:-"$(cd $(dirname $0); pwd)"}
 
@@ -48,14 +51,14 @@ if [ -f ${CONFFILE} ]; then
 fi
 
 # Set to "YES" to send error output to the console:
-DEBUG=${DEBUG:-"NO"}
+DEBUG=${DEBUG:-"YES"}
 
 # Set to "YES" in order to delete everything we have,
 # and rebuild any pre-existing .sxz modules from scratch:
-FORCE=${FORCE:-"NO"}
+FORCE=${FORCE:-"YES"}
 
 # Set to 32 to be more compatible with the specs. Slackware uses 4 by default:
-BOOTLOADSIZE=${BOOTLOADSIZE:-4}
+BOOTLOADSIZE=${BOOTLOADSIZE:-32}
 
 # If you want to include an EFI boot image for 32bit Slackware then you
 # need a recompiled grub which supports 32bit EFI (Slackware's grub will not).
@@ -1108,6 +1111,7 @@ if [ "$FORCE" = "YES" ]; then
   umount ${LIVE_ROOTDIR}/{proc,sys,dev} 2>${DBGOUT} || true
   umount ${LIVE_ROOTDIR} 2>${DBGOUT} || true
   rm -rf ${LIVE_STAGING}/${LIVEMAIN} ${LIVE_WORK} ${LIVE_ROOTDIR}
+  rm -rf ${SRC}/out/*
 fi
 
 # Create temporary directories for building the live filesystem:
