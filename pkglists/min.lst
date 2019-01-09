@@ -45,6 +45,7 @@ gnutls
 gpgme
 gpm
 gptfdisk
+graphite2
 grep
 groff
 gzip
@@ -72,6 +73,7 @@ libidn2
 libksba
 libmnl
 libmpc
+libpsl
 libtermcap
 libunistring
 #lilo
