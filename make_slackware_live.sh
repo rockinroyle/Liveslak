@@ -37,9 +37,6 @@
 # Version of the Live OS generator:
 VERSION="1.3.0.1"
 
-# Source Directory:
-SRC="`pwd`"
-
 # Directory where our live tools are stored:
 LIVE_TOOLDIR=${LIVE_TOOLDIR:-"$(cd $(dirname $0); pwd)"}
 
@@ -1111,7 +1108,6 @@ if [ "$FORCE" = "YES" ]; then
   umount ${LIVE_ROOTDIR}/{proc,sys,dev} 2>${DBGOUT} || true
   umount ${LIVE_ROOTDIR} 2>${DBGOUT} || true
   rm -rf ${LIVE_STAGING}/${LIVEMAIN} ${LIVE_WORK} ${LIVE_ROOTDIR}
-  rm -rf ${SRC}/out/*
 fi
 
 # Create temporary directories for building the live filesystem:
