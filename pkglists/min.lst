@@ -88,6 +88,7 @@ mc
 mdadm
 mkinitrd
 mlocate
+mozjs52
 mpfr
 mtr
 nano
@@ -136,6 +137,7 @@ util-linux
 wget
 which
 whois
+zstd
 xz
 # Bind needs to run at the end:
 bind

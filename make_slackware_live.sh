@@ -35,7 +35,7 @@
 # -----------------------------------------------------------------------------
 
 # Version of the Live OS generator:
-VERSION="1.3.0.1"
+VERSION="1.3.0.2"
 
 # Directory where our live tools are stored:
 LIVE_TOOLDIR=${LIVE_TOOLDIR:-"$(cd $(dirname $0); pwd)"}
@@ -2158,9 +2158,6 @@ fi
 
 # Skip all filesystem checks at boot:
 touch ${LIVE_ROOTDIR}/etc/fastboot
-
-# Disable the root filesystem check altogether:
-sed -i -e '/^if \[ ! \$READWRITE = yes/,/^fi # Done checking root filesystem/s/^/#/' ${LIVE_ROOTDIR}/etc/rc.d/rc.S
 
 # We will not write to the hardware clock:
 sed -i -e '/systohc/s/^/# /' ${LIVE_ROOTDIR}/etc/rc.d/rc.6

@@ -73,6 +73,7 @@ libpciaccess
 libplist
 libpng
 libproxy
+libpsl
 libpthread-stubs
 libqmi
 libsamplerate
@@ -93,6 +94,7 @@ libxml2
 libxslt
 llvm
 lm_sensors
+lmdb
 lzo
 make
 mozilla-nss

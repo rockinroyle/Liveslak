@@ -1326,6 +1326,9 @@ EOT
   /sbin/udevadm settle --timeout=10
   echo 0x0100 > /proc/sys/kernel/real-root-dev
 
+  # Re-mount the overlay read-only: 
+  mount -o remount,ro /mnt/overlay 2>/dev/null
+
   if [ ! -r /mnt/overlay/${INIT} ]; then
     echo "ERROR:  No ${INIT} found on rootdev (or not mounted).  Trouble ahead."
     echo "        You can try to fix it. Type 'exit' when things are done." 
@@ -1345,10 +1348,8 @@ unset ERR
 umount /proc
 umount /sys
 umount /run 2>/dev/null
-# We disable the filesystem checking code in /etc/rc.d/rc.S,
-# so we need to keep the fs writable here.
-#mount -o ro,remount /mnt/overlay 2>/dev/null
-echo "${MARKER}:  Slackware Live system is ready."
 
+echo "${MARKER}:  Slackware Live system is ready."
 echo "${MARKER}:  exiting"
+
 exec switch_root /mnt/overlay $INIT $RUNLEVEL
