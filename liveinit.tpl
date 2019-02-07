@@ -374,8 +374,9 @@ if [ "$RESCUE" = "" ]; then
       echo "/run/dhcpcd/dhcpcd-${MYDEV}.pid"
     elif [ -s /run/dhcpcd-${MYDEV}.pid ]; then
       echo "/run/dhcpcd-${MYDEV}.pid"
+    else
+      echo UNKNOWNLOC
     fi
-    echo UNKNOWNLOC
   }
 
   setnet() {
@@ -421,7 +422,7 @@ if [ "$RESCUE" = "" ]; then
           continue # skip wireless interfaces
         fi
         # If this configures an interface, we're done with dhcpcd afterwards:
-        /sbin/dhcpcd -L -p -t $DHCPWAIT $EDEV &
+        /sbin/dhcpcd -L -p -j /var/log/dhcpcd.log -t $DHCPWAIT $EDEV &
       done
       unset EDEV
       # Wait at most DHCPWAIT seconds for a DHCP-configured interface to appear:
@@ -446,7 +447,7 @@ if [ "$RESCUE" = "" ]; then
 
     if [ "x$INTERFACE" = "x" ]; then
       # Failed to find a configured interface... desperate measure:
-      echo "${MARKER}:  Failed to find network interface... trouble ahead."
+      echo "${MARKER}:  Failed to find network interface... assuming 'eth0'. Trouble ahead."
       INTERFACE="eth0"
     fi
 
@@ -454,7 +455,7 @@ if [ "$RESCUE" = "" ]; then
     if [ "$ENET_MODE" = "ask" -o "$ENET_MODE" = "dhcp" ]; then
       # Invoke dhcpcd only if it was not called yet:
       if [ ! -s $(get_dhcpcd_pid $INTERFACE) ]; then
-        /sbin/dhcpcd -L -p -t $DHCPWAIT $INTERFACE
+        /sbin/dhcpcd -L -p -j /var/log/dhcpcd.log -t $DHCPWAIT $INTERFACE
       fi
     else
       # Kill dhcpcd if we used it to find a statically configured interface:
@@ -588,6 +589,10 @@ if [ "$RESCUE" = "" ]; then
   if [ -n "$NFSHOST" ]; then
     # NFS root.  First configure our network interface:
     setnet
+
+    # Allow for debugging the PXE boot:
+    debugit
+
     # Mount the NFS share and hope for the best:
     mount -t nfs -o nolock,vers=3 $NFSHOST:$NFSPATH /mnt/media
     LIVEALL="$NFSHOST:$NFSPATH"

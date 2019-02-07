@@ -2351,6 +2351,10 @@ tar -C ${LIVE_ROOTDIR}/boot/initrd-tree/ -xf ${DHCPD_PKG} \
   var/lib/dhcpcd lib/dhcpcd sbin/dhcpcd usr/lib${DIRSUFFIX}/dhcpcd \
   etc/dhcpcd.conf.new
 mv ${LIVE_ROOTDIR}/boot/initrd-tree/etc/dhcpcd.conf{.new,}
+# Stamp the Slackware version into the initrd (at least dhcpcd needs this):
+mkdir -p ${LIVE_ROOTDIR}/boot/initrd-tree/etc/rc.d
+cp -a ${LIVE_ROOTDIR}/etc/slackware-version ${LIVE_ROOTDIR}/etc/os-release \
+  ${LIVE_ROOTDIR}/boot/initrd-tree/etc/
 if [ "$NFSROOTSUP" = "YES" ]; then
   # Add just the right kernel network modules by pruning unneeded stuff:
   if [ "$SL_ARCH" = "x86_64" -o "$SMP32" = "NO" ]; then
