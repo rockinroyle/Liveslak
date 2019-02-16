@@ -372,8 +372,12 @@ if [ "$RESCUE" = "" ]; then
     MYDEV="$1"
     if [ -s /run/dhcpcd/dhcpcd-${MYDEV}.pid ]; then
       echo "/run/dhcpcd/dhcpcd-${MYDEV}.pid"
+    elif [ -s /run/dhcpcd/dhcpcd-${MYDEV}-4.pid ]; then
+      echo "/run/dhcpcd/dhcpcd-${MYDEV}-4.pid"
     elif [ -s /run/dhcpcd-${MYDEV}.pid ]; then
       echo "/run/dhcpcd-${MYDEV}.pid"
+    elif [ -s /run/dhcpcd-${MYDEV}-4.pid ]; then
+      echo "/run/dhcpcd-${MYDEV}-4.pid"
     else
       echo UNKNOWNLOC
     fi
@@ -925,6 +929,10 @@ if [ "$RESCUE" = "" ]; then
 
   debugit
 
+  # Mount a tmpfs on /run in the overlay so that we can store volatile files.
+  # On boot, rc.S will recognize and accept the mount:
+  mount -t tmpfs tmpfs /mnt/overlay/run -o mode=0755,size=32M,nodev,nosuid,noexec
+
   # Make the underpinning RAM fs accessible in the live system (for fun):
   mkdir -p /mnt/overlay/mnt/live
   mount --rbind /mnt/live /mnt/overlay/mnt/live
@@ -1106,18 +1114,22 @@ EOPW
     sed -i -e "s/^\(127.0.0.1\t*\)@DARKSTAR@.*/\1${LIVE_HOSTNAME}.example.net ${LIVE_HOSTNAME}/" /mnt/overlay/etc/hosts
   fi
 
-  if [ -n "$NFSHOST" -a -s $(get_dhcpcd_pid $INTERFACE) ]; then
-    # Ensure that dhcpcd will find its configuration:
-    mount --bind /var/lib/dhcpcd /mnt/overlay/var/lib/dhcpcd
-    mkdir -p /mnt/overlay/run/dhcpcd
-    mount --bind /run/dhcpcd /mnt/overlay/run/dhcpcd
-    cat /etc/resolv.conf > /mnt/overlay/etc/resolv.conf
+  if [ -n "$NFSHOST" ]; then
+    if [ -s $(get_dhcpcd_pid $INTERFACE) ]; then
+      # Ensure that dhcpcd will find its configuration:
+      mount --bind /var/lib/dhcpcd /mnt/overlay/var/lib/dhcpcd
+      if [ -d /run/dhcpcd ]; then
+        mkdir -p /mnt/overlay/run/dhcpcd
+        mount --bind /run/dhcpcd /mnt/overlay/run/dhcpcd
+      fi
+      cp -a /run/dhcpcd* /mnt/overlay/run/
+      cat /etc/resolv.conf > /mnt/overlay/etc/resolv.conf
 
-    # Disable NetworkManager:
-    chmod -x /mnt/overlay/etc/rc.d/rc.networkmanager
+      # Disable NetworkManager:
+      chmod -x /mnt/overlay/etc/rc.d/rc.networkmanager
 
-    # De-configure rc.inet1:
-    cat <<EOT > /mnt/overlay/etc/rc.d/rc.inet1.conf
+      # De-configure rc.inet1:
+      cat <<EOT > /mnt/overlay/etc/rc.d/rc.inet1.conf
 IFNAME[0]="$INTERFACE"
 IPADDR[0]=""
 NETMASK[0]=""
@@ -1126,6 +1138,7 @@ DHCP_HOSTNAME[0]=""
 GATEWAY=""
 DEBUG_ETH_UP="no"
 EOT
+    fi
   fi
 
   # Tweaks:

@@ -4,6 +4,7 @@
 # deps:
 ConsoleKit2
 OpenAL
+PyQt
 PyQt5
 QScintilla
 SDL_sound
@@ -13,9 +14,12 @@ cracklib
 cryfs
 cryptopp
 ddcutil
+dotconf
 drumstick
 dvdauthor
 elogind
+espeak-ng
+flite
 freecell-solver
 frei0r-plugins
 gpgme
@@ -34,6 +38,7 @@ libdmtx
 libindicator
 libinput
 libpwquality
+libsass
 libwacom
 libxkbcommon
 lmdb
@@ -43,6 +48,7 @@ ninja
 noto-cjk-font-ttf
 noto-font-ttf
 opencv
+pcaudiolib
 perl-path-tiny
 perl-template-toolkit
 phonon
@@ -52,14 +58,18 @@ polkit-qt5-1
 poppler
 python-enum34
 python3-random2
+pyxdg
 qca-qt5
 qrencode
 qt-gstreamer
 qt5
+qt5-speech
 qt5-webkit
 qtav
+sassc
 sip
 sni-qt
+speech-dispatcher
 vid.stab
 wayland
 wayland-protocols

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright 2011, 2016, 2017  Eric Hameleers, Eindhoven, NL
+# Copyright 2011, 2016, 2017, 2019  Eric Hameleers, Eindhoven, NL
 # Copyright 2011  Patrick Volkerding, Sebeka, Minnesota USA
 # All rights reserved.
 #
@@ -65,6 +65,9 @@
 DEBUG=${DEBUG:-0}
 DIALOG=dialog
 
+# UEFI prefix:
+UEFIPREFIX="/EFI/BOOT"
+
 # Number of PXE clients we want to serve with our own DHCP server:
 DEF_DHCP_RANGE=${DEF_DHCP_RANGE:-10}
 
@@ -108,7 +111,7 @@ PATH="$PATH:/usr/share/@LIVEMAIN@"
 export PATH;
 export COLOR=on
 
-# Add some eye candy for PXE clients:
+# Add some eye candy for BIOS PXE clients:
 if [ -d /mnt/livemedia/boot/syslinux ]; then
   PXETXTSRC=/mnt/livemedia/boot/syslinux
 elif [ -d /mnt/livemedia/boot/extlinux ]; then
@@ -117,11 +120,18 @@ else
   PXETXTSRC=""
 fi
 if [ -n "$PXETXTSRC" ]; then
-  ln -s ${PXETXTSRC}/message.txt /var/lib/tftpboot/
-  ln -s ${PXETXTSRC}/f2.txt /var/lib/tftpboot/
-  ln -s ${PXETXTSRC}/f3.txt /var/lib/tftpboot/
-  ln -s ${PXETXTSRC}/f4.txt /var/lib/tftpboot/
+  # All the files that are needed for the BIOS PXE boot menu:
+  for SFILE in f2.txt f3.txt f4.txt message.txt swlogov.png ter-i16v.psf vesamenu.c32
+  do
+    ln -sf ${PXETXTSRC}/${SFILE} /var/lib/tftpboot/
+  done
 fi
+
+# For UEFI computers:
+mkdir -p  /var/lib/tftpboot${UEFIPREFIX}
+ln -sf /mnt/livemedia${UEFIPREFIX}/@MARKER@  /var/lib/tftpboot${UEFIPREFIX}/
+ln -sf /mnt/livemedia${UEFIPREFIX}/bootx64.efi  /var/lib/tftpboot${UEFIPREFIX}/
+ln -sf /mnt/livemedia${UEFIPREFIX}/theme  /var/lib/tftpboot${UEFIPREFIX}/
 
 #
 # Function definitions:
@@ -156,6 +166,23 @@ ip_to_int() {
 # Integer to IP Address conversion:
 int_to_ip() {
   echo $(($1>>24)).$(($1>>16&0xff)).$(($1>>8&0xff)).$(($1&0xff))
+}
+
+# Find the location of the dhcpcd PID file:
+get_dhcpcd_pid() {
+  # Find the location of the PID file of dhcpcd:
+  MYDEV="$1"
+  if [ -s /run/dhcpcd/dhcpcd-${MYDEV}.pid ]; then
+    echo "/run/dhcpcd/dhcpcd-${MYDEV}.pid"
+  elif [ -s /run/dhcpcd/dhcpcd-${MYDEV}-4.pid ]; then
+    echo "/run/dhcpcd/dhcpcd-${MYDEV}-4.pid"
+  elif [ -s /run/dhcpcd-${MYDEV}.pid ]; then
+    echo "/run/dhcpcd-${MYDEV}.pid"
+  elif [ -s /run/dhcpcd-${MYDEV}-4.pid ]; then
+    echo "/run/dhcpcd-${MYDEV}-4.pid"
+  else
+    echo UNKNOWNLOC
+  fi
 }
 
 # The network interface IP configuration routine.
@@ -271,7 +298,8 @@ EOF
 
     # We don't need this anymore:
     dhcpcd -k $MYIF 1>/dev/null 2>&1
-    rm -f /run/dhcpcd/dhcpcd-${MYIF}.pid
+    rm -f /run/dhcpcd/dhcpcd-${MYIF}.pid 2>/dev/null
+    rm -f /run/dhcpcd-${MYIF}.pid 2>/dev/null
 
     # Broadcast and network are derived from IP and netmask:
     LOCAL_BROADCAST=$(ipmask $LOCAL_NETMASK $LOCAL_IPADDR | cut -f 1 -d ' ')
@@ -366,7 +394,7 @@ Alternate keys may also be used: '+', '-', and TAB." 13 72 9 \
 
   # If dhcpcd is running, it likely has a lease from a LAN DHCP server,
   # so we should not activate another DHCP server ourselves now:
-  if [ -s /run/dhcpcd/dhcpcd-${INTERFACE}.pid -a -n "$(ps -q $(cat /run/dhcpcd/dhcpcd-${INTERFACE}.pid) -o comm=)" ]; then
+  if [ -s $(get_dhcpcd_pid ${INTERFACE}) -a -n "$(ps -q $(cat $(get_dhcpcd_pid ${INTERFACE})) -o comm=)" ]; then
     OWNDHCP="no"
   else
     # Assume nothing... we will ask the user for confirmation later!
@@ -383,7 +411,7 @@ Alternate keys may also be used: '+', '-', and TAB." 13 72 9 \
   #
 
   if [ $DEBUG -ne 0 ]; then read -p "Press ENTER to continue: " JUNK ; fi
-  $DIALOG --backtitle "@CDISTRO@ Linux Live PXE Server." \
+  $DIALOG --backtitle "@CDISTRO@ Linux Live (@LIVEDE@) PXE Server." \
    --title "WELCOME TO PXE CONFIGURATION" --msgbox "\
 We will be asking you a few questions now.\n\
 The answers will be used to start a PXE service on this computer \
@@ -458,7 +486,7 @@ EOF
 
     while [ 0 ]; do
       if [ $DEBUG -ne 0 ]; then read -p "Press ENTER to continue: " JUNK ; fi
-      ( $DIALOG --stdout --backtitle "@CDISTRO@ Linux Live PXE Server." \
+      ( $DIALOG --stdout --backtitle "@CDISTRO@ Linux Live (@LIVEDE@) PXE Server." \
           --title "DHCP SERVER CONFIGURATION" \
           --cancel-label Restart \
           --form "\
@@ -494,7 +522,7 @@ Also note that we will not validate any changes you make:" \
     done
   else
     if [ $DEBUG -ne 0 ]; then read -p "Press ENTER to continue: " JUNK ; fi
-    $DIALOG --backtitle "@CDISTRO@ Linux Live PXE Server." \
+    $DIALOG --backtitle "@CDISTRO@ Linux Live (@LIVEDE@) PXE Server." \
       --title "DHCP SERVER CONFIGURATION" --msgbox "\
 \n\
 PXE server has been configured to use a DHCP server in your network.\n\
@@ -527,9 +555,6 @@ enable-tftp
 # Set the root directory for files available via FTP:
 tftp-root=/var/lib/tftpboot
 
-# The boot filename:
-dhcp-boot=/pxelinux.0
-
 # Disable re-use of the DHCP servername and filename fields as extra
 # option space. That's to avoid confusing some old or broken DHCP clients.
 dhcp-no-override
@@ -541,16 +566,47 @@ log-dhcp
 # Custom path for the leases file:
 dhcp-leasefile=$TMP/pxe_dnsmasq.leases
 
-# Craft a nice PXE menu:
-pxe-prompt="Press F8 for boot menu", 3
-
+# Test for the architecture of a netboot client. PXE clients are
+# supposed to send their architecture as option 93. (See RFC 4578) .
 # The known types are x86PC, PC98, IA64_EFI, Alpha, Arc_x86,
 # Intel_Lean_Client, IA32_EFI, BC_EFI, Xscale_EFI and X86-64_EFI
-pxe-service=X86PC, "Boot from network", /var/lib/tftpboot/pxelinux
+dhcp-match=x86PC,      option:client-arch, 0  #BIOS x86
+dhcp-match=BC_EFI,     option:client-arch, 7  #EFI Byte Code
+dhcp-match=X86-64_EFI, option:client-arch, 9  #EFI x86_64 
+
+# Craft a nice PXE menu (user has 3 seconds to interrupt in which case the
+# network boot sequence will be aborted):
+pxe-prompt="PXE booting in 3 seconds...", 3
+
+# Now let's build a boot menu. If there's only one menu item PXE will
+# automatically boot into this. If thre are multiple boot selections,
+# then user input is expected.
+# I found out that UEFI PXE boot with more than one menu item won't work.
+# The 'pxe-service' definitions are the PXE alternative to the generic
+# 'dhcp-boot' keyword.
+
+# The PXE boot image has to match the client architecture.
+# And we enforce that our own TFTP server is being used so that misbehaving
+# DHCP servers on the LAN that set 'next-server' are not affecting us:
+pxe-service=X86PC, "Boot from network (BIOS)", pxelinux,${LOCAL_IPADDR}
+pxe-service=BC_EFI, "Boot from network (UEFI)", ${UEFIPREFIX}/bootx64.efi,${LOCAL_IPADDR}
+pxe-service=X86-64_EFI, "Boot from network (UEFI)", ${UEFIPREFIX}/bootx64.efi,${LOCAL_IPADDR}
 
 # A boot service type of 0 is special, and will abort the
 # net boot procedure and continue booting from local media.
-pxe-service=X86PC, "Boot from local hard disk", 0                               
+pxe-service=X86PC, "Boot from local hard disk", 0
+
+# Note:
+# The above 'pxe-service' menu does not always work for UEFI-based clients,
+# so alternatively you could implement a combination of 'dhcp-match' and
+# 'dhcp-boot' to provide a boot image. Here is a commented-out example:
+#dhcp-match=set:efi-x86_64,option:client-arch,7
+#dhcp-match=set:efi-x86_64,option:client-arch,9
+#dhcp-match=set:efi-x86,option:client-arch,6
+#dhcp-match=set:bios,option:client-arch,0
+#dhcp-boot=tag:efi-x86_64,"${UEFIPREFIX}/bootx64.efi"
+#dhcp-boot=tag:efi-x86,"${UEFIPREFIX}/bootia32.efi"
+#dhcp-boot=tag:bios,"bios/lpxelinux.0"
 
 EOF
 
@@ -559,6 +615,7 @@ EOF
     cat <<EOF >> ${TMP}/pxe_dnsmasq.conf
 # Override the default route supplied by dnsmasq, which assumes the
 # router is the same machine as the one running dnsmasq.
+# The two options below are equivalent:
 #dhcp-option=option:router,${LOCAL_GATEWAY}
 dhcp-option=3,${LOCAL_GATEWAY}
 
@@ -591,20 +648,105 @@ dhcp-range=${LOCAL_IPADDR},proxy
 EOF
   fi
 
-  # Create the pxelinux configuration file:
+  # Create the pxelinux configuration file for BIOS boot:
   KBD=$(sed -n "s%^ */usr/bin/loadkeys *%%p" /etc/rc.d/rc.keymap 2>/dev/null)
   cat <<EOF > /var/lib/tftpboot/pxelinux.cfg/default
-default pxelive
-prompt 1
+prompt 0
 timeout 300
-display message.txt
-F1 message.txt
-F2 f2.txt
-F3 f3.txt
-F4 f4.txt
+ui vesamenu.c32
+default pxelive
+
+menu background swlogov.png
+menu title @CDISTRO@ Linux Live PXE boot menu
+menu clear
+
+F1 pxemessage.txt #00000000
+F2 f2.txt #00000000
+F3 f3.txt #00000000
+F4 f4.txt #00000000
+
+menu hshift 1
+menu vshift 9
+menu width 45
+menu margin 1
+menu rows 10
+menu helpmsgrow 14
+menu helpmsgendrow 18
+menu cmdlinerow 18
+menu tabmsgrow 19
+menu timeoutrow 20
+
+menu color screen       37;40      #00000000 #00000000 none
+menu color border       34;40      #00000000 #00000000 none
+menu color title        1;36;44    #ffb9556b #30002d1f none
+menu color unsel        37;44      #ff354172 #007591ff none
+menu color hotkey       1;37;44    #ffad37b7 #00000000 none
+menu color sel          7;37;40    #ffffffff #00000000 none
+menu color hotsel       1;7;37;40  #ffe649f3 #00000000 none
+menu color scrollbar    30;44      #00000000 #00000000 none
+menu color tabmsg       31;40      #ffA32222 #00000000 none
+menu color cmdmark      1;36;40    #ffff0000 #00000000 none
+menu color cmdline      37;40      #ffffffff #ff000000 none
+menu color pwdborder    30;47      #ffff0000 #00000000 std
+menu color pwdheader    31;47      #ffff0000 #00000000 std
+menu color pwdentry     30;47      #ffff0000 #00000000 std
+menu color timeout_msg  37;40      #ff809aef #00000000 none
+menu color timeout      1;37;40    #ffb72f9f #00000000 none
+menu color help         37;40      #ff354172 #00000000 none
+
 label pxelive
+  menu label Boot @CDISTRO@ Linux Live (@LIVEDE@) from network
   kernel /generic
   append initrd=/initrd.img load_ramdisk=1 prompt_ramdisk=0 rw printk.time=0 nfsroot=${LOCAL_IPADDR}:/mnt/livemedia luksvol= nop hostname=@DISTRO@ tz=$(cat /etc/timezone) locale=${SYSLANG:-"en_US.UTF-8"} kbd=${KBD:-"us"}
+EOF
+
+  # And a Grub configuration for UEFI boot:
+  cat <<EOF > /var/lib/tftpboot${UEFIPREFIX}/grub.cfg
+# PXE boot menu for UEFI based systems:
+
+set default=0
+set timeout=200
+
+# EFI video support:
+insmod efi_gop
+insmod efi_uga
+# (U)EFI requirement: must support all_video:
+insmod all_video
+
+# Load the network modules first, so that we can use \$prefix;
+insmod net
+insmod efinet
+insmod tftp
+
+insmod gzio
+insmod part_gpt
+insmod ext2
+
+# Determine whether we can show a graphical themed menu:
+insmod font
+if loadfont \$prefix/theme/dejavusansmono12.pf2 ; then
+  loadfont \$prefix/theme/dejavusansmono10.pf2
+  loadfont \$prefix/theme/dejavusansmono5.pf2
+  set font="DejaVu Sans Mono Regular 12"
+  set gfxmode=1024x768,800x600,640x480,auto
+  export gfxmode
+  insmod gfxterm
+  insmod gfxmenu
+  terminal_output gfxterm
+  insmod gettext
+  insmod png
+  set theme=\$prefix/theme/liveslak.txt
+  export theme
+fi
+
+set gfxpayload=keep
+
+menuentry 'Boot @CDISTRO@ Linux Live (@LIVEDE@) from network' --class slackware --class gnu-linux --class gnu --class os {
+  echo "Loading @CDISTRO@ kernel"
+  linux generic load_ramdisk=1 prompt_ramdisk=0 rw printk.time=0 nfs root=${LOCAL_IPADDR}:/mnt/livemedia luksvol= nop hostname=@DISTRO@ tz=$(cat /etc/timezone) locale=${SYSLANG:-"en_US.UTF-8"} kbd=${KBD:-"us"}
+  initrd initrd.img
+  echo "Booting @CDISTRO@ kernel"
+}
 EOF
 
 } # end of pxeconfig()
@@ -618,7 +760,7 @@ EOF
 while [ 0 ]; do
 
   if [ $DEBUG -ne 0 ]; then read -p "Press ENTER to continue: " JUNK ; fi
-  $DIALOG --title "@CDISTRO@ Linux Live PXE Server (version current)" \
+  $DIALOG --title "@CDISTRO@ Linux Live PXE Server (@LIVEDE@ @SL_VERSION@)" \
     --menu \
 "Welcome to @CDISTRO@ Linux Live PXE Server.\n\
 Select an option below using the UP/DOWN keys and SPACE or ENTER.\n\
@@ -691,7 +833,7 @@ EOT
     fi
 
     if [ $DEBUG -ne 0 ]; then read -p "Press ENTER to continue: " JUNK ; fi
-    $DIALOG --backtitle "Slackware PXE Server." \
+    $DIALOG --backtitle "@CDISTRO@ Linux Live PXE Server." \
       --title "PXE Client activity log" \
       --ok-label "EXIT" \
       --tailbox /var/log/pxe_dnsmasq.log 20 68

@@ -44,8 +44,8 @@ echo "Building ${EFIDIR}/boot${EFISUFF}.efi and /boot/syslinux/efiboot.img."
 # works with mutiple grub releases (grub-2.02 added the 'disk' module):
 GMODDIR="$(dirname $(LANG=C grub-mkimage -O ${EFIFORM}-efi -p ${EFIDIR} alienbob 2>&1 | cut -d\` -f2 |cut -d\' -f1) )"
 GMODLIST=""
-for GMOD in part_gpt part_msdos fat ext2 iso9660 ntfs chain linux boot configfile normal regexp extcmd minicmd reboot halt search search_fs_file search_fs_uuid search_label gfxterm gfxmenu gfxterm_background fxterm_menu efi_gop efi_uga all_video loadbios gzio echo true probe loadenv bitmap_scale font cat help ls png jpeg tga test at_keyboard usb_keyboard disk memdisk nativedisk file loopback tar ; do
-  [ -f ${GMODDIR}/${GMOD}.mod ] && GMODLIST="${GMODLIST} ${GMOD}"
+for GMOD in part_gpt part_msdos fat ext2 iso9660 ntfs chain linux boot configfile normal regexp extcmd minicmd reboot halt search search_fs_file search_fs_uuid search_label gfxterm gfxmenu gfxterm_background efi_gop efi_uga all_video loadbios gzio echo true probe loadenv bitmap_scale font cat help ls png jpeg tga test at_keyboard usb_keyboard disk memdisk nativedisk file loopback tar tftp net efinet efifwsetup ; do
+  [ -f ${GMODDIR}/${GMOD}.mod ] && GMODLIST="${GMODLIST} ${GMOD}" || echo ">> ${GMOD} not found"
 done
 
 # Build bootx64.efi/bootia32.efi, which will be installed here in ${EFIDIR}.

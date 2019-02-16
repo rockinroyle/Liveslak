@@ -1,9 +1,6 @@
 #
 # GRUB menu template for Slackware Live Edition
 #
-set grubdir="($root)/EFI/BOOT"
-export grubdir
-
 set default=0
 set timeout=20
 
@@ -27,10 +24,10 @@ fi
 
 # Determine whether we can show a graphical themed menu:
 insmod font
-if loadfont $grubdir/theme/dejavusansmono12.pf2 ; then
-  loadfont $grubdir/theme/dejavusansmono10.pf2
-  loadfont $grubdir/theme/dejavusansmono5.pf2
-  set gfxmode=auto,640x480
+if loadfont $prefix/theme/dejavusansmono12.pf2 ; then
+  loadfont $prefix/theme/dejavusansmono10.pf2
+  loadfont $prefix/theme/dejavusansmono5.pf2
+  set gfxmode=1024x768,800x600,640x480,auto
   export gfxmode
   # (U)EFI requirement: must support all_video:
   insmod all_video
@@ -39,7 +36,7 @@ if loadfont $grubdir/theme/dejavusansmono12.pf2 ; then
   terminal_output gfxterm
   insmod gettext
   insmod png
-  set theme=$grubdir/theme/liveslak.txt
+  set theme=$prefix/theme/liveslak.txt
   export theme
 fi
 
@@ -49,15 +46,15 @@ menuentry "Start @CDISTRO@@DIRSUFFIX@ @SL_VERSION@ @LIVEDE@ Live @VERSION@ ($sl_
 }
 
 submenu "Non-@ULANG@ Keyboard selection" --hotkey k {
-  configfile $grubdir/kbd.cfg
+  configfile $prefix/kbd.cfg
 }
 
 submenu "Non-@ULANG@ Language selection" --hotkey l {
-  configfile $grubdir/lang.cfg
+  configfile $prefix/lang.cfg
 }
 
 submenu "Non-@ULANG@ Timezone selection" --hotkey t {
-  configfile $grubdir/tz.cfg
+  configfile $prefix/tz.cfg
 }
 
 menuentry "Memory test with memtest86+" {
@@ -66,7 +63,7 @@ menuentry "Memory test with memtest86+" {
 
 menuentry "Help on boot parameters" --hotkey h { 
   set pager=1 
-  cat $grubdir/help.txt 
+  cat $prefix/help.txt 
   unset pager 
 } 
 

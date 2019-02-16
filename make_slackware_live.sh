@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2014, 2015, 2016, 2017, 2018  Eric Hameleers, Eindhoven, NL 
+# Copyright 2014, 2015, 2016, 2017, 2018, 2019  Eric Hameleers, Eindhoven, NL 
 # All rights reserved.
 #
 #   Permission to use, copy, modify, and distribute this software for
@@ -35,7 +35,7 @@
 # -----------------------------------------------------------------------------
 
 # Version of the Live OS generator:
-VERSION="1.3.0.2"
+VERSION="1.3.1.1"
 
 # Directory where our live tools are stored:
 LIVE_TOOLDIR=${LIVE_TOOLDIR:-"$(cd $(dirname $0); pwd)"}
@@ -727,7 +727,7 @@ menuentry "${LANDSC}" {
   export sl_kbd
   export sl_xkb
   export sl_lang
-  configfile \$grubdir/grub.cfg
+  configfile \$prefix/grub.cfg
 }
 
 EOL
@@ -739,7 +739,7 @@ menuentry "${LANDSC}" {
   set sl_lang="$LANDSC"
   export sl_locale
   export sl_lang
-  configfile \$grubdir/grub.cfg
+  configfile \$prefix/grub.cfg
 }
 
 EOL
@@ -776,7 +776,7 @@ EOL
 menuentry "${TZ}" {
   set sl_tz="$TZ"
   export sl_tz
-  configfile \$grubdir/grub.cfg
+  configfile \$prefix/grub.cfg
 }
 
 EOL
@@ -1041,7 +1041,7 @@ DEF_SL_PATCHROOT=${SL_PATCHROOT}
 # Are all the required add-on tools present?
 [ "$USEXORR" = "NO" ] && ISOGEN="mkisofs isohybrid" || ISOGEN="xorriso"
 PROG_MISSING=""
-for PROGN in mksquashfs unsquashfs grub-mkfont syslinux $ISOGEN installpkg upgradepkg keytab-lilo rsync ; do
+for PROGN in mksquashfs unsquashfs grub-mkfont grub-mkimage syslinux $ISOGEN installpkg upgradepkg keytab-lilo rsync mkdosfs ; do
   if ! which $PROGN 1>/dev/null 2>/dev/null ; then
     PROG_MISSING="${PROG_MISSING}--   $PROGN\n"
   fi
@@ -1542,6 +1542,9 @@ mkdir -p ${LIVE_ROOTDIR}/var/lib/tftpboot/pxelinux.cfg
 cp -ia /usr/share/syslinux/pxelinux.0 ${LIVE_ROOTDIR}/var/lib/tftpboot/
 ln -s /mnt/livemedia/boot/generic ${LIVE_ROOTDIR}/var/lib/tftpboot/
 ln -s /mnt/livemedia/boot/initrd.img ${LIVE_ROOTDIR}/var/lib/tftpboot/
+mkdir -p ${LIVE_ROOTDIR}/var/lib/tftpboot/EFI/BOOT
+ln -s /mnt/livemedia/EFI/BOOT ${LIVE_ROOTDIR}/var/lib/tftpboot/uefi
+ln -s /mnt/livemedia/EFI/BOOT/bootx64.efi ${LIVE_ROOTDIR}/var/lib/tftpboot/EFI/BOOT/
 cat ${LIVE_TOOLDIR}/pxeserver.tpl | sed \
   -e "s/@DIRSUFFIX@/$DIRSUFFIX/g" \
   -e "s/@DISTRO@/$DISTRO/g" \
@@ -2443,8 +2446,9 @@ if [ "$SL_ARCH" = "x86_64" -o "$EFI32" = "YES" ]; then
     rm -f ${LIVE_STAGING}/EFI/BOOT/theme/unicode.pf2
   fi
 
-  # Create the grub fonts used in the theme:
-  for FSIZE in 5 10 12; do
+  # Create the grub fonts used in the theme.
+  # Command outputs string like this: "Font name: DejaVu Sans Mono Regular 5".
+  for FSIZE in 5 10 12 20 ; do
     grub-mkfont -s ${FSIZE} -av \
       -o ${LIVE_STAGING}/EFI/BOOT/theme/dejavusansmono${FSIZE}.pf2 \
       /usr/share/fonts/TTF/DejaVuSansMono.ttf \
