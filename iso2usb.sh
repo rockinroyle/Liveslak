@@ -419,7 +419,7 @@ while [ ! -z "$1" ]; do
       HLUKSSIZE="$2"
       DOLUKS=1
       # Needs unsquashfs to extract the /home
-      REQTOOLS="${REQTOOLS} unsquashfs"
+      REQTOOLS="${REQTOOLS} unsquashfs zstd"
       shift 2
       ;;
     -d|--devices)
@@ -544,6 +544,11 @@ done
 if [ ! -z "$PROG_MISSING" ] ; then
   echo "-- Required program(s) not found in search path '$PATH'!"
   echo -e ${PROG_MISSING}
+  if echo ${PROG_MISSING} |grep -wq zstd ; then
+    echo "-- Note that the 'zstd' program is missing which means"
+    echo "-- unsquashfs is not linking against it."
+    echo "-- Install the zstd and squashf-stools packages for zstd support."
+  fi
   echo "-- Exiting."
   exit 1
 fi
