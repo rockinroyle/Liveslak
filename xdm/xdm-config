@@ -29,3 +29,6 @@ DisplayManager.requestPort:	0
 
 ! Mate and Cinnamon fail without this:
 DisplayManager*authName: MIT-MAGIC-COOKIE-1 
+
+! Release X memory after session ends:
+DisplayManager*terminateServer:	true

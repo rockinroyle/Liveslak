@@ -140,4 +140,5 @@ whois
 zstd
 xz
 # Bind needs to run at the end:
+python-ply
 bind

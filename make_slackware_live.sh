@@ -1871,6 +1871,13 @@ EOT
   mkdir -p ${LIVE_ROOTDIR}/etc/skel/.local/share/akonadi
   mkdir -p ${LIVE_ROOTDIR}/etc/skel/.kde/share/config
 
+  # Configure kdesu to use 'sudo' instead of 'su', so that it will ask
+  # for the 'live'password instead of the 'root'password:
+  cat <<KDESU_EOF >${LIVE_ROOTDIR}/etc/skel/.config/kdesurc
+[super-user-command]
+super-user-command=sudo
+KDESU_EOF
+
   # Set akonadi backend:
   cat <<AKONADI_EOF >${LIVE_ROOTDIR}/etc/skel/.config/akonadi/akonadiserverrc
 [%General]

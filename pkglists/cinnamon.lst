@@ -46,6 +46,7 @@ ptyprocess
 py3cairo
 pygobject3-python3
 python-pam
+python-soupsieve
 python3
 setproctitle
 speex
