@@ -688,7 +688,7 @@ else
   else
     # Determine the new kernel version from a module,
     # rather than from a directory- or filenames:
-    KVER=$(strings ${KMODDIR}/kernel/fs/overlayfs/overlay.ko* |grep ^vermagic |cut -d= -f2 |cut -d' ' -f1)
+    KVER=$(strings $(find ${KMODDIR}/kernel/ -name "*.ko*" |head -1) |grep ^vermagic |cut -d= -f2 |cut -d' ' -f1)
     if [ -z "${KVER}" ]; then
       echo "*** Could not determine kernel version from the module directory"
       echo "*** (querying module kernel/fs/overlayfs/overlay.ko)!"
