@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2017  Eric Hameleers, Eindhoven, NL
+# Copyright 2017, 2019  Eric Hameleers, Eindhoven, NL
 # All rights reserved.
 #
 # Redistribution and use of this script, with or without modification, is
@@ -71,6 +71,9 @@ WAIT=-1
 SUPPORTED=1
 
 # Values obtained from the init script on the USB:
+DEF_KBD=""
+DEF_LOCALE=""
+DEF_TZ=""
 DISTRO=""
 LIVE_HOSTNAME=""
 LIVEMAIN=""
@@ -78,6 +81,7 @@ LIVEUID=""
 MARKER=""
 MEDIALABEL=""
 PERSISTENCE=""
+SQ_EXT_AVAIL=""
 VERSION=""
 
 # By default we make a backup of your old kernel/modules when adding new ones:
@@ -365,7 +369,7 @@ read_initrd() {
   OLDWAIT=$(cat ./wait-for-root)
 
   # Read the values of liveslak template variables in the init script:
-  for TEMPLATEVAR in DISTRO LIVE_HOSTNAME LIVEMAIN LIVEUID MARKER MEDIALABEL PERSISTENCE VERSION ; do
+  for TEMPLATEVAR in DEF_KBD DEF_LOCALE DEF_TZ DISTRO LIVE_HOSTNAME LIVEMAIN LIVEUID MARKER MEDIALABEL PERSISTENCE SQ_EXT_AVAIL VERSION ; do
     eval $(grep "^ *${TEMPLATEVAR}=" ./init |head -1)
   done
 
@@ -542,6 +546,10 @@ parse_template() {
     -e "s/@CDISTRO@/${DISTRO^}/g" \
     -e "s/@UDISTRO@/${DISTRO^^}/g" \
     -e "s/@VERSION@/${VERSION}/g" \
+    -e "s/@SQ_EXT_AVAIL@/${SQ_EXT_AVAIL}/g" \
+    -e "s,@DEF_KBD@,${DEF_KBD},g" \
+    -e "s,@DEF_LOCALE@,${DEF_LOCALE},g" \
+    -e "s,@DEF_TZ@,${DEF_TZ},g" \
     > ${OUTFILE}
 } # End of parse_template()
 

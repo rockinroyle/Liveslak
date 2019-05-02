@@ -1166,7 +1166,7 @@ esac
 # Do we need to create/include additional module(s) defined by a pkglist:
 if [ -n "$SEQ_ADDMOD" ]; then
   echo "-- Adding ${SEQ_ADDMOD}."
-  MSEQ="${MSEQ} pkglist:${SEQ_ADDMOD}"
+  MSEQ="${MSEQ} ${SEQ_ADDMOD}"
 fi
 
 # Do we need to include multilib?
@@ -2335,7 +2335,8 @@ fi
 # Create an initrd for the generic kernel, using a modified init script:
 echo "-- Creating initrd for kernel-generic $KVER ..."
 chroot ${LIVE_ROOTDIR} /sbin/mkinitrd -c -w ${WAIT} -l us -o /boot/initrd_${KVER}.img -k ${KVER} -m ${KMODS} -L -C dummy 1>${DBGOUT} 2>${DBGOUT}
-# Modify the initrd content for the Live OS:
+# Modify the initrd content for the Live OS.
+# Note: 'upslak.sh' needs to be updated when this 'cat' command changes:
 cat $LIVE_TOOLDIR/liveinit.tpl | sed \
   -e "s/@LIVEMAIN@/$LIVEMAIN/g" \
   -e "s/@MARKER@/$MARKER/g" \
