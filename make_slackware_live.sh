@@ -35,7 +35,7 @@
 # -----------------------------------------------------------------------------
 
 # Version of the Live OS generator:
-VERSION="1.3.1.1"
+VERSION="1.3.2"
 
 # Directory where our live tools are stored:
 LIVE_TOOLDIR=${LIVE_TOOLDIR:-"$(cd $(dirname $0); pwd)"}
@@ -176,7 +176,6 @@ SEQ_KDE4BASE="pkglist:${MINLIST},noxbase,x_base,xapbase,kde4base"
 
 # List of Slackware package series with Plasma5 instead of KDE 4 (full install):
 # - each will become a squashfs module:
-#SEQ_PLASMA5="tagfile:a,ap,d,e,f,k,l,n,t,tcl,x,xap,xfce,y pkglist:alien,alienrest,kde4plasma5,plasma5,slackextra,slackpkgplus"
 SEQ_PLASMA5="tagfile:a,ap,d,e,f,k,l,n,t,tcl,x,xap,xfce,y pkglist:alien,alienrest,plasma5,slackextra,slackpkgplus"
 
 # List of Slackware package series with MSB instead of KDE 4 (full install):
@@ -213,6 +212,7 @@ NETFIRMWARE="3com acenic adaptec bnx tigon e100 sun kaweth tr_smctr cxgb3"
 # If any Live variant needs additional 'append' parameters, define them here,
 # either using a variable name 'KAPPEND_<LIVEDE>', or by defining 'KAPPEND' in the .conf file:
 KAPPEND_SLACKWARE=""
+KAPPEND_PLASMA5="threadirqs"
 KAPPEND_STUDIOWARE="threadirqs"
 
 # Add CACert root certificates yes/no?
@@ -468,7 +468,9 @@ function install_pkgs() {
   fi
 
   if [ "$TRIM" = "doc" -o "$TRIM" = "mandoc" -o "$LIVEDE" = "XFCE"  ]; then
-    # Remove undesired (too big for a live OS) document subdirectories:
+    # Remove undesired (too big for a live OS) document subdirectories,
+    # but leave cups alone because it contains the CUPS service's web page:
+    mv "${2}"/usr/doc/cups-* "${2}"/usr/ 2>/dev/null
     (cd "${2}/usr/doc" && find . -type d -mindepth 2 -maxdepth 2 -exec rm -rf {} \;)
     rm -rf "$2"/usr/share/gtk-doc
     rm -rf "$2"/usr/share/help
@@ -480,6 +482,8 @@ function install_pkgs() {
     find "${2}"/usr/doc/ -type f -size +50k |xargs rm -f
     # Remove info pages:
     rm -rf "$2"/usr/info
+    # Move cups documentation back in place:
+    mv "${2}"/usr/cups-* "${2}"/usr/doc/ 2>/dev/null
   fi
   if [ "$TRIM" = "mandoc" ]; then
     # Also remove man pages:
@@ -492,17 +496,26 @@ function install_pkgs() {
     rm -f "$2"/usr/bin/mysql*embedded*
     # I am against torture:
     rm -f "$2"/usr/bin/smbtorture
-    # Also remove some of the big unused/esoteric static libraries:
-    rm -rf "$2"/usr/lib${DIRSUFFIX}/{libaudiofile,libgdk,libglib,libgtk}.a
-    rm -rf "$2"/usr/lib${DIRSUFFIX}/{liblftp*,libnl}.a
-    rm -rf "$2"/usr/lib${DIRSUFFIX}/libboost*test*.a
-    # The llvm static libraries are not needed since we also ship the .so:
-    rm -rf "$2"/usr/lib${DIRSUFFIX}/lib{LLVM,clang,lldb}*.a
-    # And these are not needed for a simple XFCE ISO:
-    rm -rf "$2"/usr/lib${DIRSUFFIX}/clang/*/lib/linux/*.a{,.syms}
-    rm -f "$2"/usr/bin/{c-index-test,clang-change-namespace,clang-check,clang-func-mapping,clang-import-test,clang-include-fixer,clang-offload-bundler,clang-order-fields,clang-refactor,clang-query,clang-rename,clang-reorder-fields,clang-tidy,clangd,find-all-symbols,lldb-server,lldb-test,modularize}
+    # Also remove the big unused/esoteric static libraries:
+    rm -f "$2"/usr/lib${DIRSUFFIX}/*.a
+    # This was inadvertantly left in the gcc package:
+    rm -f "$2"/usr/libexec/gcc/*/*/cc1objplus
+    # From llvm we only want the shared runtime libraries so wipe the rest:
+    rm -f "$2"/usr/lib${DIRSUFFIX}/lib{LLVM,lldb}*.a
+    rm -rf "$2"/usr/lib${DIRSUFFIX}/libclang*
+    rm -rf "$2"/usr/include/{c++/v1,clang,clang-c,lldb,llvm,llvm-c}
+    rm -rf "$2"/usr/share/{clang,opt-viewer,scan-build,scan-view}
+    rm -rf "$2"/usr/lib${DIRSUFFIX}/cmake/{clang,llvm}
+    rm -rf "$2"/usr/lib${DIRSUFFIX}/clang
+    rm -rf "$2"/usr/lib${DIRSUFFIX}/python*/site-packages/{clang,lldb}
+    if [ -e "$2"/var/log/packages/llvm-[0-9]* ]; then
+      for BINFILE in $(grep /bin/. "$2"/var/log/packages/llvm-[0-9]*) ; do
+         rm -f "$2"/$BINFILE ; 
+      done
+    fi
+    # Bye llvm; on with the rest:
     rm -rf "$2"/usr/lib${DIRSUFFIX}/d3d
-    rm -rf "$2"/usr/lib${DIRSUFFIX}/guile/*/ccache/*
+    rm -rf "$2"/usr/lib${DIRSUFFIX}/guile
     rm -rf "$2"/usr/share/icons/HighContrast
     # Nor these datacenter NIC firmwares and drivers:
     rm -rf "$2"/lib/firmware/{bnx*,cxgb4,libertas,liquidio,mellanox,netronome,qed}
@@ -1980,6 +1993,14 @@ if [ "$LIVEDE" = "STUDIOWARE" ]; then
   chroot ${LIVE_ROOTDIR} /usr/sbin/useradd -c "Avahi Service Account" -u 214 -g 214 -d /dev/null -s /bin/false avahi
   echo "avahi:$(openssl rand -base64 12)" | chroot ${LIVE_ROOTDIR} /usr/sbin/chpasswd
 
+fi # End LIVEDE = STUDIOWARE  
+
+if [ "$LIVEDE" = "PLASMA5" -o "$LIVEDE" = "STUDIOWARE" ]; then
+
+  # -------------------------------------------------------------------------- #
+  echo "-- Configuring $LIVEDE (RT beaviour)."
+  # -------------------------------------------------------------------------- #
+
   # RT Scheduling and Locked Memory:
   cat << "EOT" > ${LIVE_ROOTDIR}/etc/initscript
 # Set umask to safe level:
@@ -1995,7 +2016,7 @@ ulimit -r 65
 eval exec "$4"
 EOT
 
-fi # End LIVEDE = STUDIOWARE  
+fi # End LIVEDE = PLASMA5/STUDIOWARE  
 
 # You can define the function 'custom_config()' by uncommenting it in
 # the configuration file 'make_slackware_live.conf'.

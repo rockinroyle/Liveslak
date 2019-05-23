@@ -28,7 +28,7 @@ network-manager-applet
 nghttp2
 pangomm
 pavucontrol
-pidgin
+#pidgin
 rdesktop
 rxvt
 rxvt-unicode

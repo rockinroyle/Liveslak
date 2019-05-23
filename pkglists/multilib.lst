@@ -32,6 +32,7 @@ xz-compat32
 cups-compat32
 cups-filters-compat32
 flac-compat32
+lm_sensors-compat
 mariadb-compat32
 mpg123-compat32
 sqlite-compat32
@@ -127,6 +128,7 @@ libxml2-compat32
 libxslt-compat32
 lmdb-compat32
 lzo-compat32
+mozilla-nss-compat32
 ncurses-compat32
 ocl-icd-compat32
 openjpeg-compat32
@@ -206,8 +208,10 @@ libdmx-compat32
 libdrm-compat32
 libepoxy-compat32
 libfontenc-compat32
+libglvnd-compat32
 libinput-compat32
 libpciaccess-compat32
+libpthread-stubs-compat32
 libva-compat32
 libva-intel-driver-compat32
 libvdpau-compat32
@@ -218,5 +222,6 @@ mesa-compat32
 pixman-compat32
 vulkan-sdk-compat32
 xcb-util-compat32
+xorgproto-compat32
 # The XAP/ series:
 sane-compat32

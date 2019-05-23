@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2015, 2016, 2017  Eric Hameleers, Eindhoven, NL
+# Copyright 2015, 2016, 2017, 2019  Eric Hameleers, Eindhoven, NL
 # All rights reserved.
 #
 # Redistribution and use of this script, with or without modification, is
@@ -72,7 +72,7 @@ DOLUKS=0
 REFRESH=0
 
 # These tools are required by the script, we will check for their existence:
-REQTOOLS="blkid cpio extlinux fdisk gdisk isoinfo mkdosfs sgdisk syslinux"
+REQTOOLS="blkid cpio extlinux fdisk gdisk isoinfo lsblk mkdosfs sgdisk syslinux"
 
 # Path to syslinux files:
 if [ -d /usr/share/syslinux ]; then
@@ -136,11 +136,11 @@ showhelp() {
 cat <<EOT
 #
 # Purpose: to transfer the content of Slackware's Live ISO image
-#   to a standard USB thumb drive (which will be formatted and wiped!)
+#   to a standard USB thumb drive (or some other kind of external storage)
 #   and thus create a Slackware Live USB media. 
 #
-# Your USB thumb drive may contain data!
-# This data will be *erased* !
+# WARNING: Your USB thumb drive may contain data!
+# If you are not using the refresh option '-r' then this data will be *erased* !
 #
 # $(basename $0) accepts the following parameters:
 #   -c|--crypt size|perc       Add LUKS encrypted /home ; parameter is the
@@ -172,7 +172,7 @@ cat <<EOT
 # Examples:
 #
 # $(basename $0) -i ~/download/slackware64-live-14.2.iso -o /dev/sdX
-# $(basename $0) -i slackware64-live-xfce-current.iso -o /dev/sdX -c 750M -w 15
+# $(basename $0) -i slackware64-live-xfce-current.iso -o /dev/mmcblkX -c 750M -w 15
 #
 EOT
 }
@@ -201,10 +201,11 @@ show_devices() {
   if [ -z "${MYDATA}" ]; then
     MYDATA="$(ls --indicator-style=none /sys/block/ |grep -Ev '(ram|loop|dm-)')"
   fi
+  echo "#"
   echo "# Removable devices detected on this computer:"
   for BD in ${MYDATA} ; do
     if [ $(cat /sys/block/${BD}/removable) -eq 1 ]; then
-      echo "# /dev/${BD} : $(cat /sys/block/${BD}/device/vendor) $(cat /sys/block/${BD}/device/model): $(( $(cat /sys/block/${BD}/size) / 2048)) MB"
+      echo "# /dev/${BD} : $(cat /sys/block/${BD}/device/vendor 2>/dev/null) $(cat /sys/block/${BD}/device/model 2>/dev/null): $(( $(cat /sys/block/${BD}/size) / 2048)) MB"
     fi
   done
   echo "#"
@@ -524,14 +525,16 @@ if [ $FORCE -eq 0 -a ! -f "$SLISO" ]; then
   exit 1
 fi
 
-if [ ! -b $TARGET -a $FORCE -eq 0 ]; then
-  echo "*** Not a block device: '$TARGET' !"
-  show_devices
-  exit 1
-elif [ "$(echo ${TARGET%[0-9]})" != "$TARGET" -a $FORCE -eq 0 ]; then
-  echo "*** You need to point to the USB device, not a partition ($TARGET)!"
-  show_devices
-  exit 1
+if [ $FORCE -eq 0 ]; then
+  if [ ! -e /sys/block/$(basename $TARGET) ]; then
+    echo "*** Not a block device: '$TARGET' !"
+    show_devices
+    exit 1
+  elif lsblk -l $TARGET |grep -w $(basename $TARGET) |grep -wq part ; then
+    echo "*** You need to point to the storage device itself, not a partition ($TARGET)!"
+    show_devices
+    exit 1
+  fi
 fi
 
 # Are all the required not-so-common add-on tools present?
@@ -576,8 +579,8 @@ fi
   # Continue with the common text message:
   cat <<EOT
 # ---------------------------------------------------------------------------
-# Vendor : $(cat /sys/block/$(basename $TARGET)/device/vendor)
-# Model  : $(cat /sys/block/$(basename $TARGET)/device/model)
+# Vendor : $(cat /sys/block/$(basename $TARGET)/device/vendor 2>/dev/null)
+# Model  : $(cat /sys/block/$(basename $TARGET)/device/model 2>/dev/null)
 # Size   : $(( $(cat /sys/block/$(basename $TARGET)/size) / 2048)) MB
 # ---------------------------------------------------------------------------
 #
@@ -623,13 +626,18 @@ if [ $REFRESH -eq 0 ]; then
   # Show what we did to the USB stick:
   sgdisk -p -A 3:show $TARGET
 
+  # Determine partition names independently of storage architecture:
+  TARGETP1=$(fdisk -l $TARGET |grep ^$TARGET |cut -d' ' -f1 |grep -E '[^0-9]1$')
+  TARGETP2=$(fdisk -l $TARGET |grep ^$TARGET |cut -d' ' -f1 |grep -E '[^0-9]2$')
+  TARGETP3=$(fdisk -l $TARGET |grep ^$TARGET |cut -d' ' -f1 |grep -E '[^0-9]3$')
+
   # Create filesystems:
   # Not enough clusters for a 32 bit FAT:
-  mkdosfs -s 2 -n "DOS" ${TARGET}1
-  mkdosfs -F32 -s 2 -n "EFI" ${TARGET}2
+  mkdosfs -s 2 -n "DOS" ${TARGETP1}
+  mkdosfs -F32 -s 2 -n "EFI" ${TARGETP2}
   # KDE tends to automount.. so try an umount:
-  if mount |grep -qw ${TARGET}3 ; then
-    umount ${TARGET}3 || true
+  if mount |grep -qw ${TARGETP3} ; then
+    umount ${TARGETP3} || true
   fi
   # http://www.syslinux.org/wiki/index.php?title=Filesystem
   # As of Syslinux 6.03, "pure 64-bits" compression/encryption is not supported.
@@ -638,14 +646,18 @@ if [ $REFRESH -eq 0 ]; then
   # Explicitly disable 64bit feature in the mke2fs command with '-O ^64bit';
   # otherwise, the syslinux bootloader (>= 6.03) will fail.
   # Note: older 32bit OS-es will trip over the '^64bit' feature so be gentle.
-  mkfs.ext4 -F -F -L "${LIVELABEL}" ${TARGET}3
-  if ! tune2fs -O ^64bit ${TARGET}3 1>/dev/null 2>/dev/null ; then
+  mkfs.ext4 -F -F -L "${LIVELABEL}" ${TARGETP3}
+  if ! tune2fs -O ^64bit ${TARGETP3} 1>/dev/null 2>/dev/null ; then
     FEAT_64BIT=""
   else
     FEAT_64BIT="-O ^64bit"
   fi
-  tune2fs -c 0 -i 0 -m 0 ${FEAT_64BIT} ${TARGET}3
-
+  tune2fs -c 0 -i 0 -m 0 ${FEAT_64BIT} ${TARGETP3}
+else
+  # Determine partition names independently of storage architecture:
+  TARGETP1=$(fdisk -l $TARGET |grep ^$TARGET |cut -d' ' -f1 |grep -E '[^0-9]1$')
+  TARGETP2=$(fdisk -l $TARGET |grep ^$TARGET |cut -d' ' -f1 |grep -E '[^0-9]2$')
+  TARGETP3=$(fdisk -l $TARGET |grep ^$TARGET |cut -d' ' -f1 |grep -E '[^0-9]3$')
 fi # End [ $REFRESH -eq 0 ]
 
 # Create temporary mount points for the ISO file and USB device:
@@ -678,7 +690,7 @@ else
 fi
 
 # Mount the Linux partition:
-mount -t auto ${TARGET}3 ${USBMNT}
+mount -t auto ${TARGETP3} ${USBMNT}
 
 # Loop-mount the ISO (or 1st partition if this is a hybrid ISO):
 mount -o loop "${SLISO}" ${ISOMNT}
@@ -739,7 +751,7 @@ fi
 
 if [ -n "${HLUKSSIZE}" ]; then
   # Create LUKS container file for /home:
-  create_container ${TARGET}3 ${HLUKSSIZE} ${SLHOME} luks /home
+  create_container ${TARGETP3} ${HLUKSSIZE} ${SLHOME} luks /home
   LUKSHOME=${CNTFILE}
 fi
 
@@ -785,10 +797,10 @@ elif [ "${PERSISTTYPE}" = "file" ]; then
   # Note: the word "persistence" below is a keyword for create_container:
   if [ -z "${PLUKSSIZE}" ]; then
     # Un-encrypted container:
-    create_container ${TARGET}3 90% ${PERSISTENCE} none persistence
+    create_container ${TARGETP3} 90% ${PERSISTENCE} none persistence
   else
     # LUKS-encrypted container:
-    create_container ${TARGET}3 ${PLUKSSIZE} ${PERSISTENCE} luks persistence
+    create_container ${TARGETP3} ${PLUKSSIZE} ${PERSISTENCE} luks persistence
   fi
 else
   echo "*** Unknown persistence type '${PERSISTTYPE}'!"
@@ -810,7 +822,7 @@ extlinux --install ${USBMNT}/boot/extlinux
 
 if [ $EFIBOOT -eq 1 ]; then
   # Mount the EFI partition and copy /EFI as well as /boot directories into it:
-  mount -t vfat -o shortname=mixed ${TARGET}2 ${US2MNT}
+  mount -t vfat -o shortname=mixed ${TARGETP2} ${US2MNT}
   mkdir -p ${US2MNT}/EFI/BOOT
   rsync -rlptD ${ISOMNT}/EFI/BOOT/* ${US2MNT}/EFI/BOOT/
   mkdir -p ${USBMNT}/boot

@@ -576,6 +576,32 @@ if [ "$RESCUE" = "" ]; then
     done
   }
 
+  # Function input is a series of device node names. Return all block devices:
+  ret_blockdev () {
+    local OUTPUT=""
+    for IDEV in $* ; do
+      if [ -e /sys/block/$(basename $IDEV) ]; then
+        # We found a matching block device:
+        OUTPUT="$OUTPUT$IDEV "
+      fi
+    done
+    # Trim trailing space:
+    echo $OUTPUT |cat
+  }
+
+  # Function input is a series of device node names.  Return all partitions:
+  ret_partition () {
+    local OUTPUT=""
+    for IDEV in $* ; do
+      if [ -e /sys/class/block/$(basename $IDEV)/partition ]; then
+        # We found a matching partition:
+        OUTPUT="$OUTPUT$IDEV "
+      fi
+    done
+    # Trim trailing space:
+    echo $OUTPUT |cat
+  }
+
   ## End support functions ##
 
   # We need a mounted filesystem here to be able to do a switch_root later,
@@ -606,25 +632,29 @@ if [ "$RESCUE" = "" ]; then
   elif [ -z "$LIVEMEDIA" ]; then
     # LIVEMEDIA not specified on the boot commandline using "livemedia="
     # Filter out the block devices, only look at partitions at first:
-    LIVEALL=$(blkid |grep LABEL="\"$MEDIALABEL\"" |cut -d: -f1 |grep "[0-9]$")
-    LIVEMEDIA=$(blkid |grep LABEL="\"$MEDIALABEL\"" |cut -d: -f1 |grep "[0-9]$" |head -1)
+    # The blkid function in busybox behaves differently than the regular blkid!
+    # It will return all devices with filesystems and list LABEL UUID and TYPE.
+    LIVEALL=$(blkid |grep LABEL="\"$MEDIALABEL\"" |cut -d: -f1)
+    # We pick the first hit that is not a block device, which will give
+    # precedence to a USB stick over a CDROM ISO for instance:
+    LIVEMEDIA=$(ret_partition $LIVEALL |cut -d' ' -f1)
     if [ ! -z "$LIVEMEDIA" ]; then
       # That was easy... we found the media straight away.
       # Determine filesystem type ('iso9660' means we found a CDROM/DVD)
       LIVEFS=$(blkid $LIVEMEDIA |rev |cut -d'"' -f2 |rev)
       mount -t $LIVEFS -o ro $LIVEMEDIA /mnt/media
     else
-      LIVEALL=$(blkid |grep LABEL="\"$MEDIALABEL\"" |cut -d: -f1 |grep -v "[0-9]$")
-      LIVEMEDIA=$(blkid |grep LABEL="\"$MEDIALABEL\"" |cut -d: -f1 |grep -v "[0-9]$" |head -1)
+      LIVEMEDIA=$(ret_blockdev $LIVEALL |cut -d' ' -f1)
       if [ ! -z "$LIVEMEDIA" ]; then
         # We found a block device with the correct label (non-UEFI media).
         # Determine filesystem type ('iso9660' means we found a CDROM/DVD)
         LIVEFS=$(blkid $LIVEMEDIA |rev |cut -d'"' -f2 |rev)
         mount -t $LIVEFS -o ro $LIVEMEDIA /mnt/media
       else
-        # Bummer... label not found; the ISO was extracted to a different device.
+        # Bummer.. label not found; the ISO was extracted to a different device.
         # Separate partitions from block devices, look at partitions first:
-        for SLDEVICE in $(blkid |cut -d: -f1 |grep "[0-9]$") $(blkid |cut -d: -f1 |grep -v "[0-9]$") ; do
+        for SLDEVICE in $(ret_partition $(blkid |cut -d: -f1)) $(ret_blockdev $(blkid |cut -d: -f1)) ; do
+          # We rely on the fact that busybox blkid puts TYPE"..." at the end:
           SLFS=$(blkid $SLDEVICE |rev |cut -d'"' -f2 |rev)
           mount -t $SLFS -o ro $SLDEVICE /mnt/media
           if [ -d /mnt/media/${LIVEMAIN} ]; then
@@ -669,7 +699,7 @@ if [ "$RESCUE" = "" ]; then
         if [ "$LIVEMEDIA" = "scandev" ]; then
           # Scan partitions to find the one with the ISO and set LIVEMEDIA:
           echo "${MARKER}:  Scanning for '$LIVEPATH'..."
-          for ISOPART in $(blkid |cut -d: -f1 |grep "[0-9]$") $(blkid |cut -d: -f1 |grep -v "[0-9]$") ; do
+          for ISOPART in $(ret_partition $(blkid |cut -d: -f1)) $(ret_blockdev $(blkid |cut -d: -f1)) ; do
             PARTFS=$(blkid $ISOPART |rev |cut -d'"' -f2 |rev)
             # Abuse the $SUPERMNT a bit, we will actually use it later:
             mount -t $PARTFS -o ro $ISOPART ${SUPERMNT}

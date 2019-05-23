@@ -45,7 +45,7 @@ lmdb
 mesa
 mlt
 ninja
-noto-cjk-font-ttf
+#noto-cjk-font-ttf
 noto-font-ttf
 opencv
 pcaudiolib
@@ -66,6 +66,7 @@ qt5
 qt5-speech
 qt5-webkit
 qtav
+rttr
 sassc
 sip
 sni-qt
@@ -438,7 +439,6 @@ ksirk
 ksnakeduel
 kspaceduel
 ksquares
-kstars
 ksudoku
 ksystemlog
 kteatime
@@ -485,8 +485,8 @@ zeroconf-ioslave
 
 # applications-extra:
 alkimia
-calligra
-calligraplan
+#calligra
+#calligraplan
 digikam
 falkon
 kaudiocreator
@@ -503,6 +503,7 @@ kmymoney
 kpmcore
 krename
 krusader
+kstars
 ktorrent
 kuser
 kwebkitpart

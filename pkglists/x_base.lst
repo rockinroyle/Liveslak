@@ -72,6 +72,7 @@ glu
 gmime
 gnome-keyring
 gnome-themes-standard
+gobject-introspection
 graphite2
 gsettings-desktop-schemas
 gst-plugins-base
@@ -148,6 +149,7 @@ libevdev
 libfakekey
 libfontenc
 libglade
+libglvnd
 libgnome-keyring
 libgsf
 libidl
@@ -192,6 +194,7 @@ presentproto
 printproto
 pycairo
 pygobject
+pygobject3
 pygtk
 randrproto
 recordproto

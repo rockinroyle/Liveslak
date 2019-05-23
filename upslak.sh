@@ -122,7 +122,7 @@ USBMNT=""
 EFIMNT=""
 
 # These tools are required by the script, we will check for their existence:
-REQTOOLS="cpio gdisk inotifywait strings xz"
+REQTOOLS="cpio gdisk inotifywait lsblk strings xz"
 
 # Compressor used on the initrd ("gzip" or "xz --check=crc32");
 # Note that the kernel's XZ decompressor does not understand CRC64:
@@ -210,7 +210,7 @@ show_devices() {
   echo "# Removable devices detected on this computer:"
   for BD in ${MYDATA} ; do
     if [ $(cat /sys/block/${BD}/removable) -eq 1 ]; then
-      echo "# /dev/${BD} : $(cat /sys/block/${BD}/device/vendor) $(cat /sys/block/${BD}/device/model): $(( $(cat /sys/block/${BD}/size) / 2048)) MB"
+      echo "# /dev/${BD} : $(cat /sys/block/${BD}/device/vendor 2>/dev/null) $(cat /sys/block/${BD}/device/model 2>/dev/null): $(( $(cat /sys/block/${BD}/size) / 2048)) MB"
     fi
   done
   echo "#"
@@ -655,12 +655,12 @@ elif [ $SCAN -eq 1 ]; then
   exit 1
 fi
 
-if [ ! -b $TARGET ]; then
+if [ ! -e /sys/block/$(basename $TARGET) ]; then
   echo "*** Not a block device: '$TARGET' !"
   show_devices
   exit 1
-elif [ "$(echo ${TARGET%%[0-9]*})" != "$TARGET" ]; then
-  echo "*** You need to point to the USB device, not a partition ($TARGET)!"
+elif lsblk -l $TARGET |grep -w $(basename $TARGET) |grep -wq part ; then
+  echo "*** You need to point to the storage device itself, not a partition ($TARGET)!"
   show_devices
   exit 1
 fi
@@ -740,8 +740,8 @@ cat <<EOT
 # We are going to update the Live OS on this device.
 # ---------------------------------------------------------------------------
 # Target is - '$TARGET':
-# Vendor : $(cat /sys/block/$(basename $TARGET)/device/vendor)
-# Model  : $(cat /sys/block/$(basename $TARGET)/device/model)
+# Vendor : $(cat /sys/block/$(basename $TARGET)/device/vendor 2>/dev/null)
+# Model  : $(cat /sys/block/$(basename $TARGET)/device/model 2>/dev/null)
 # Size   : $(( $(cat /sys/block/$(basename $TARGET)/size) / 2048)) MB
 # ---------------------------------------------------------------------------
 #
@@ -768,6 +768,11 @@ EOT
 fi
 
 # OK... the user was sure about the drive...
+# Determine the three partition names independently of storage architecture:
+TARGETP1=$(fdisk -l $TARGET |grep ^$TARGET |cut -d' ' -f1 |grep -E '[^0-9]1$')
+TARGETP2=$(fdisk -l $TARGET |grep ^$TARGET |cut -d' ' -f1 |grep -E '[^0-9]2$')
+TARGETP3=$(fdisk -l $TARGET |grep ^$TARGET |cut -d' ' -f1 |grep -E '[^0-9]3$')
+
 # Create a temporary extraction directory for the initrd:
 mkdir -p /mnt
 IMGDIR=$(mktemp -d -p /mnt -t alienimg.XXXXXX)
@@ -799,10 +804,10 @@ else
 fi
 
 # Mount the Linux partition:
-mount -t auto ${TARGET}3 ${USBMNT}
+mount -t auto ${TARGETP3} ${USBMNT}
 
 # Mount the EFI partition:
-mount -t vfat -o shortname=mixed ${TARGET}2 ${EFIMNT}
+mount -t vfat -o shortname=mixed ${TARGETP2} ${EFIMNT}
 
 # Determine size of the Linux partition (in MB), and the free space:
 USBPSIZE=$(get_part_mb_size ${USBMNT})

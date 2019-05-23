@@ -22,6 +22,7 @@ json-glib
 libbluray
 libcap
 libdaemon
+libglvnd
 libinput
 libwacom
 libwebp
