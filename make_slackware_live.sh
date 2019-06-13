@@ -35,7 +35,7 @@
 # -----------------------------------------------------------------------------
 
 # Version of the Live OS generator:
-VERSION="1.3.2"
+VERSION="1.3.2.2"
 
 # Directory where our live tools are stored:
 LIVE_TOOLDIR=${LIVE_TOOLDIR:-"$(cd $(dirname $0); pwd)"}
@@ -1733,6 +1733,20 @@ sed -i "s/@LIBDIR@/lib${DIRSUFFIX}/g" ${LIVE_ROOTDIR}/etc/X11/xdm/liveslak-xdm/x
 # The Xscreensaver should show a blank screen only, to prevent errors about
 # missing modules:
 echo "mode:           blank" > ${LIVE_ROOTDIR}/home/${LIVEUID}/.xscreensaver
+
+# Make the EmojiOne TTF font universally available:
+mkdir -p ${LIVE_ROOTDIR}/etc/fonts
+cat << EOT > ${LIVE_ROOTDIR}/etc/fonts/local.conf
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<!-- /etc/fonts/local.conf file to customize system font access -->
+<fontconfig>
+<!-- Contains the EmojiOne TTF font: -->
+<dir>/usr/lib${DIRSUFFIX}/firefox/fonts</dir>
+</fontconfig>
+EOT
+chroot ${LIVE_ROOTDIR} fc-cache -f
+
 
 # -------------------------------------------------------------------------- #
 echo "-- Configuring XFCE."

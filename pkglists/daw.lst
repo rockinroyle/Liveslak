@@ -6,6 +6,7 @@ ardour
 aubio
 avldrums.lv2
 calf
+cuetools
 drumkit
 drumstick
 eq10q
@@ -20,6 +21,7 @@ libmpdclient
 lilv
 lsp-plugins
 lv2
+mac
 mpc
 musescore
 mxml
@@ -31,6 +33,7 @@ qjackctl
 qsynth
 rubberband
 serd
+shntool
 sord
 sratom
 suil

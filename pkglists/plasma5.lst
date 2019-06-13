@@ -59,6 +59,7 @@ poppler
 python-enum34
 python3-random2
 pyxdg
+quazip
 qca-qt5
 qrencode
 qt-gstreamer
