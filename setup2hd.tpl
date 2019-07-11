@@ -242,7 +242,8 @@ Press ENTER to return to the main menu." 16 68
       /etc/profile.d/lang.sh \
       /etc/rc.d/rc.font \
       /etc/rc.d/rc.gpm \
-      /etc/slackpkg
+      /etc/slackpkg \
+      /etc/vconsole.conf
     # Point xdm to the custom /etc/X11/xdm/liveslak-xdm/xdm-config:
     sed -i ${T_PX}/etc/rc.d/rc.4 -e 's,bin/xdm -nodaemon,& -config /etc/X11/xdm/liveslak-xdm/xdm-config,'
     # Remove the marker file from the filesystem root:

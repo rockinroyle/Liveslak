@@ -40,6 +40,7 @@ live_post_install () {
     /etc/slackpkg \
     /etc/suauth \
     /etc/sudoers \
+    /etc/vconsole.conf \
     /home/live
   # Point xdm to the custom /etc/X11/xdm/liveslak-xdm/xdm-config:
   sed -i ${T_PX}/etc/rc.d/rc.4 -e 's,bin/xdm -nodaemon,& -config /etc/X11/xdm/liveslak-xdm/xdm-config,'
