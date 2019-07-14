@@ -2,7 +2,7 @@
 NetworkManager-openconnect
 NetworkManager-openvpn
 acpilight
-boost-compat
+#boost-compat
 calibre
 chromium
 chromium-pepperflash-plugin
@@ -11,13 +11,13 @@ dropbox-client
 #ffmpeg
 freerdp
 #gcc5
-gecko-mediaplayer
-gmtk
-gnome-mplayer
+#gecko-mediaplayer
+#gmtk
+#gnome-mplayer
 gst-plugins-ffmpeg0
 gst-plugins-libav
-icedtea-web
-icu4c-compat
+#icedtea-web
+#icu4c-compat
 keepassx
 lame
 libreoffice
@@ -63,7 +63,7 @@ libreoffice
 #libreoffice-dict-uk
 #libreoffice-dict-vi
 #libreoffice-dict-zu
-libreoffice-kde-integration
+#libreoffice-kde-integration
 libstatgrab
 #libtinfo
 libtorrent-rasterbar

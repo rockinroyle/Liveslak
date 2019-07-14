@@ -9,6 +9,7 @@ PyQt5
 QScintilla
 SDL_sound
 accountsservice
+brotli
 cfitsio
 cracklib
 cryfs
@@ -75,6 +76,7 @@ speech-dispatcher
 vid.stab
 wayland
 wayland-protocols
+woff2
 xorg-server
 
 # telepathy deps:
