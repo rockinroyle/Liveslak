@@ -19,7 +19,7 @@ gst-plugins-libav
 #icedtea-web
 #icu4c-compat
 keepassx
-lame
+#lame
 libreoffice
 #libreoffice-dict-af
 #libreoffice-dict-ar

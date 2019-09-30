@@ -35,7 +35,7 @@
 # -----------------------------------------------------------------------------
 
 # Version of the Live OS generator:
-VERSION="1.3.2.3"
+VERSION="1.3.2.4"
 
 # Directory where our live tools are stored:
 LIVE_TOOLDIR=${LIVE_TOOLDIR:-"$(cd $(dirname $0); pwd)"}
@@ -485,7 +485,7 @@ function install_pkgs() {
     # Move cups documentation back in place:
     mv "${2}"/usr/cups-* "${2}"/usr/doc/ 2>/dev/null
   fi
-  if [ "$TRIM" = "mandoc" ]; then
+  if [ "$TRIM" = "mandoc" -o "$LIVEDE" = "XFCE" ]; then
     # Also remove man pages:
     rm -rf "$2"/usr/man
   fi

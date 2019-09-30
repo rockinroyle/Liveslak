@@ -482,7 +482,7 @@ getpath_kernelimg () {
   local MYDATA="${*}"
   [ -z "${MYDATA}" ] && echo ""
 
-  if [ -n "$(file \"${MYDATA}\" |grep -E 'x86 boot (executable|sector)')" ]; then
+  if [ -n "$(file "${MYDATA}" |grep -E 'x86 boot (executable|sector)')" ]; then
     # We have a kernel image:
     echo "${MYDATA}"
   else
@@ -579,15 +579,15 @@ while [ ! -z "$1" ]; do
       exit
       ;;
     -i|--init)
-      LIVEINIT="$(cd $(dirname $2); pwd)/$(basename $2)"
+      LIVEINIT="$(cd "$(dirname "$2")"; pwd)/$(basename "$2")"
       shift 2
       ;;
     -k|--kernel)
-      KERNEL="$2"
+      KERNEL="$(cd "$(dirname "$2")"; pwd)/$(basename "$2")"
       shift 2
       ;;
     -m|--kmoddir)
-      KMODDIR="$2"
+      KMODDIR="$(cd "$(dirname "$2")"; pwd)/$(basename "$2")"
       shift 2
       ;;
     -n|--netsupport)
