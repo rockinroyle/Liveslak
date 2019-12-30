@@ -35,7 +35,7 @@
 # -----------------------------------------------------------------------------
 
 # Version of the Live OS generator:
-VERSION="1.3.2.4"
+VERSION="1.3.4"
 
 # Directory where our live tools are stored:
 LIVE_TOOLDIR=${LIVE_TOOLDIR:-"$(cd $(dirname $0); pwd)"}
@@ -176,7 +176,7 @@ SEQ_KDE4BASE="pkglist:${MINLIST},noxbase,x_base,xapbase,kde4base"
 
 # List of Slackware package series with Plasma5 instead of KDE 4 (full install):
 # - each will become a squashfs module:
-SEQ_PLASMA5="tagfile:a,ap,d,e,f,k,l,n,t,tcl,x,xap,xfce,y pkglist:alien,alienrest,plasma5,slackextra,slackpkgplus"
+SEQ_PLASMA5="tagfile:a,ap,d,e,f,k,l,n,t,tcl,x,xap,xfce,y pkglist:plasma5,plasma5alien,slackextra,slackpkgplus"
 
 # List of Slackware package series with MSB instead of KDE 4 (full install):
 # - each will become a squashfs module:
@@ -200,7 +200,7 @@ SEQ_STUDW="tagfile:a,ap,d,e,f,k,kde,l,n,t,tcl,x,xap,xfce,y pkglist:slackextra,sl
 KMODS=${KMODS:-"squashfs:overlay:loop:xhci-pci:ohci-pci:ehci-pci:xhci-hcd:uhci-hcd:ehci-hcd:mmc-core:mmc-block:sdhci:sdhci-pci:sdhci-acpi:usb-storage:hid:usbhid:i2c-hid:hid-generic:hid-apple:hid-cherry:hid-logitech:hid-logitech-dj:hid-logitech-hidpp:hid-lenovo:hid-microsoft:hid_multitouch:jbd:mbcache:ext3:ext4:isofs:fat:nls_cp437:nls_iso8859-1:msdos:vfat:ntfs"}
 
 # Network kernel modules to include for NFS root support:
-NETMODS="kernel/drivers/net"
+NETMODS="kernel/drivers/net kernel/drivers/virtio"
 
 # Network kernel modules to exclude from above list:
 NETEXCL="appletalk arcnet bonding can dummy.ko hamradio hippi ifb.ko irda macvlan.ko macvtap.ko pcmcia sb1000.ko team tokenring tun.ko usb veth.ko wan wimax wireless xen-netback.ko"
@@ -320,18 +320,22 @@ uncompressfs () {
 #
 full_pkgname() {
   PACK=$1
-  TOPDIR=$2
-  # Perhaps I will use this more readable code in future:
-  #for FL in $(find ${TOPDIR} -name "${PACK}-*.t?z" 2>/dev/null) ; do
-  #  # Weed out package names starting with "$PACK"; we want exactly "$PACK":
-  #  if [ "$(echo $FL |rev |cut -d- -f4- |cut -d/ -f1 |rev)" != "$PACK" ]; then
-  #    continue
-  #  else
-  #    break
-  #  fi
-  #done
-  #echo "$FL"
-  echo "$(find ${TOPDIR} -name "${PACK}-*.t?z" 2>/dev/null |grep -E "\<${PACK//+/\\+}-[^-]+-[^-]+-[^-]+.t?z" |head -1)"
+  if [ -e $2 ]; then
+    TOPDIR=$2
+    # Perhaps I will use this more readable code in future:
+    #for FL in $(find ${TOPDIR} -name "${PACK}-*.t?z" 2>/dev/null) ; do
+    #  # Weed out package names starting with "$PACK"; we want exactly "$PACK":
+    #  if [ "$(echo $FL |rev|cut -d- -f4-|cut -d/ -f1|rev)" != "$PACK" ]; then
+    #    continue
+    #  else
+    #    break
+    #  fi
+    #done
+    #echo "$FL"
+    echo "$(find ${TOPDIR}/ -name "${PACK}-*.t?z" 2>/dev/null |grep -E "\<${PACK//+/\\+}-[^-]+-[^-]+-[^-]+.t?z" |head -1)"
+  else
+    echo ""
+  fi
 }
 
 #
@@ -385,7 +389,7 @@ function install_pkgs() {
     else
       SELECTION=""
     fi
-    if [ ! -d ${SL_REPO} -o -z "$(find ${SL_PKGROOT} -type f 2>/dev/null)" ]; then
+    if [ ! -d ${SL_REPO} -o -z "$(find ${SL_PKGROOT}/ -type f 2>/dev/null)" ]; then
       # Oops... empty local repository. Let's see if we can rsync from remote:
       echo "** Slackware package repository root '${SL_REPO}' does not exist or is empty!"
       RRES=1
@@ -639,6 +643,8 @@ EOL
     cat ${LIVE_TOOLDIR}/menu.tpl | sed \
       -e "s/@KBD@/$KBD/g" \
       -e "s/@LANG@/$LANCOD/g" \
+      -e "s/@ULANG@/${DEF_LANG^^}/g" \
+      -e "s,@LOCALE@,${DEF_LOCALE},g" \
       -e "s/@CONSFONT@/$CONSFONT/g" \
       -e "s/@DIRSUFFIX@/$DIRSUFFIX/g" \
       -e "s/@DISTRO@/$DISTRO/g" \
@@ -1581,7 +1587,7 @@ if ls ${LIVE_ROOTDIR}/boot/vmlinuz-huge-* 1>/dev/null 2>/dev/null; then
   # and move them to a single directory in the ISO:
   mkdir -p  ${LIVE_ROOTDIR}/usr/share/${LIVEMAIN}
   cd  ${LIVE_ROOTDIR}/usr/share/${LIVEMAIN}
-    uncompressfs ${DEF_SL_PKGROOT}/../isolinux/initrd.img | cpio -i -d -H newc --no-absolute-filenames usr/lib/setup/* sbin/probe sbin/fixdate
+    uncompressfs ${DEF_SL_PKGROOT}/../isolinux/initrd.img | cpio -i -d -m -H newc usr/lib/setup/* sbin/probe sbin/fixdate
     mv -i usr/lib/setup/* sbin/probe sbin/fixdate .
     rm -r usr sbin
     rm -f setup
@@ -1879,6 +1885,10 @@ if [ "$LIVEDE" = "PLASMA5" ]; then
   then
     rm -f ${LIVE_ROOTDIR}/usr/share/wayland-sessions/plasmawayland.desktop || true
   fi
+
+  # Set the OS name to "Slackware Live" in "System Information":
+  echo "Name=${DISTRO^} Live" >> ${LIVE_ROOTDIR}/etc/kde/xdg/kcm-about-distrorc
+
   # Set sane SDDM defaults on first boot (root-owned file):
   mkdir -p ${LIVE_ROOTDIR}/var/lib/sddm
   cat <<EOT > ${LIVE_ROOTDIR}/var/lib/sddm/state.conf 
@@ -2417,25 +2427,27 @@ if [ "$NFSROOTSUP" = "YES" ]; then
   # We need to extract the full kernel-modules package for deps resolving:
   tar -C ${KMODS_TEMP} -xf ${KMODS_PKG}
   # Get the kernel modules:
-  cd ${KMODS_TEMP}
-    cp -a --parents lib/modules/${KVER}/${NETMODS} \
-      ${LIVE_ROOTDIR}/boot/initrd-tree/
-  cd - 1>/dev/null
-  # Prune the ones we do not need:
-  for KNETRM in ${NETEXCL} ; do
-    find ${LIVE_ROOTDIR}/boot/initrd-tree/lib/modules/${KVER}/${NETMODS} \
-      -name $KNETRM -depth -exec rm -rf {} \;
-  done
-  # Add any dependency modules:
-  for MODULE in $(find ${LIVE_ROOTDIR}/boot/initrd-tree/lib/modules/${KVER}/${NETMODS} -type f -exec basename {} .ko \;) ; do
-    /sbin/modprobe --dirname ${KMODS_TEMP} --set-version $KVER --show-depends --ignore-install $MODULE 2>/dev/null |grep "^insmod " |cut -f 2 -d ' ' |while read SRCMOD; do
-      if [ "$(basename $SRCMOD .ko)" != "$MODULE" ]; then
-        cd ${KMODS_TEMP}
-          # Need to strip ${KMODS_TEMP} from the start of ${SRCMOD}:
-          cp -a --parents $(echo $SRCMOD |sed 's|'${KMODS_TEMP}'/|./|' ) \
-            ${LIVE_ROOTDIR}/boot/initrd-tree/
-        cd - 1>/dev/null
-      fi
+  for NETMODPATH in ${NETMODS} ; do 
+    cd ${KMODS_TEMP}
+      cp -a --parents lib/modules/${KVER}/${NETMODPATH} \
+        ${LIVE_ROOTDIR}/boot/initrd-tree/
+    cd - 1>/dev/null
+    # Prune the ones we do not need:
+    for KNETRM in ${NETEXCL} ; do
+      find ${LIVE_ROOTDIR}/boot/initrd-tree/lib/modules/${KVER}/${NETMODPATH} \
+        -name $KNETRM -depth -exec rm -rf {} \;
+    done
+    # Add any dependency modules:
+    for MODULE in $(find ${LIVE_ROOTDIR}/boot/initrd-tree/lib/modules/${KVER}/${NETMODPATH} -type f -exec basename {} .ko \;) ; do
+      /sbin/modprobe --dirname ${KMODS_TEMP} --set-version $KVER --show-depends --ignore-install $MODULE 2>/dev/null |grep "^insmod " |cut -f 2 -d ' ' |while read SRCMOD; do
+        if [ "$(basename $SRCMOD .ko)" != "$MODULE" ]; then
+          cd ${KMODS_TEMP}
+            # Need to strip ${KMODS_TEMP} from the start of ${SRCMOD}:
+            cp -a --parents $(echo $SRCMOD |sed 's|'${KMODS_TEMP}'/|./|' ) \
+              ${LIVE_ROOTDIR}/boot/initrd-tree/
+          cd - 1>/dev/null
+        fi
+      done
     done
   done
   # Remove the temporary tree:

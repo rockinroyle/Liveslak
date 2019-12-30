@@ -3,6 +3,7 @@
 #
 # deps:
 ConsoleKit2
+LibRaw
 OpenAL
 PyQt
 PyQt5
@@ -20,6 +21,7 @@ drumstick
 dvdauthor
 elogind
 espeak-ng
+exiv2
 flite
 freecell-solver
 frei0r-plugins
@@ -46,7 +48,7 @@ lmdb
 mesa
 mlt
 ninja
-#noto-cjk-font-ttf
+noto-cjk-font-ttf
 noto-font-ttf
 opencv
 pcaudiolib
@@ -65,7 +67,6 @@ qca-qt5
 qrencode
 qt-gstreamer
 qt5
-qt5-speech
 qt5-webkit
 qtav
 rttr
@@ -148,11 +149,13 @@ kapidox
 karchive
 kauth
 kbookmarks
+kcalendarcore
 kcmutils
 kcodecs
 kcompletion
 kconfig
 kconfigwidgets
+kcontacts
 kcoreaddons
 kcrash
 kdbusaddons
@@ -191,6 +194,7 @@ kparts
 kpeople
 kplotting
 kpty
+kquickcharts
 kross
 krunner
 kservice
@@ -236,9 +240,7 @@ kaddressbook
 kalarm
 kalarmcal
 kblog
-kcalcore
 kcalutils
-kcontacts
 kdav
 kdepim-addons
 kdepim-apps-libs
@@ -295,6 +297,7 @@ kscreen2
 kscreenlocker
 ksshaskpass
 ksysguard
+kwallet-pam
 kwayland
 kwayland-integration
 kwin
@@ -321,6 +324,8 @@ xdg-desktop-portal-kde
 
 # plasma-extra:
 #kde-wallpapers
+pulseaudio-qt
+kpeoplevcard
 kdeconnect-framework
 latte-dock
 oxygen-fonts
@@ -342,6 +347,7 @@ cervisia
 dolphin
 dolphin-plugins
 dragon
+elisa
 ffmpegthumbs
 filelight
 granatier
@@ -489,8 +495,8 @@ zeroconf-ioslave
 
 # applications-extra:
 alkimia
-#calligra
-#calligraplan
+calligra
+calligraplan
 digikam
 falkon
 kaudiocreator

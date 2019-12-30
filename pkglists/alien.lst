@@ -1,8 +1,8 @@
 # Showcases for using with Slackware Live:
-NetworkManager-openconnect
-NetworkManager-openvpn
+#NetworkManager-openconnect
+#NetworkManager-openvpn
 acpilight
-#boost-compat
+boost-compat
 calibre
 chromium
 chromium-pepperflash-plugin
@@ -17,7 +17,7 @@ freerdp
 gst-plugins-ffmpeg0
 gst-plugins-libav
 #icedtea-web
-#icu4c-compat
+icu4c-compat
 keepassx
 #lame
 libreoffice
@@ -68,7 +68,7 @@ libstatgrab
 #libtinfo
 libtorrent-rasterbar
 #lumina
-mkvtoolnix
+#mkvtoolnix
 muparser
 netsurf
 nodejs

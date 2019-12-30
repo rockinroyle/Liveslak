@@ -134,7 +134,7 @@ COMPR="xz --check=crc32"
 KMODS=${KMODS:-"squashfs:overlay:loop:xhci-pci:ohci-pci:ehci-pci:xhci-hcd:uhci-hcd:ehci-hcd:mmc-core:mmc-block:sdhci:sdhci-pci:sdhci-acpi:usb-storage:hid:usbhid:i2c-hid:hid-generic:hid-apple:hid-cherry:hid-logitech:hid-logitech-dj:hid-logitech-hidpp:hid-lenovo:hid-microsoft:hid_multitouch:jbd:mbcache:ext3:ext4:isofs:fat:nls_cp437:nls_iso8859-1:msdos:vfat:ntfs"}
 
 # Network kernel modules to include for NFS root support:
-NETMODS="kernel/drivers/net"
+NETMODS="kernel/drivers/net kernel/drivers/virtio"
 
 # Network kernel modules to exclude from above list:
 NETEXCL="appletalk arcnet bonding can dummy.ko hamradio hippi ifb.ko irda macvlan.ko macvtap.ko pcmcia sb1000.ko team tokenring tun.ko usb veth.ko wan wimax wireless xen-netback.ko"
@@ -329,25 +329,27 @@ collect_kmods() {
   # Do we have to add network support?
   if [ $NETSUPPORT -eq 1 ]; then
     # The initrd already contains dhcpcd so we just need to add kmods:
-    cd ${KMODDIR}
-      mkdir -p ${IMGDIR}/lib/modules/${KVER}
-      cp -a --parents ${NETMODS} ${IMGDIR}/lib/modules/${KVER}/
-    cd - 1>/dev/null
-    # Prune the ones we do not need:
-    for KNETRM in ${NETEXCL} ; do
-      find ${IMGDIR}/lib/modules/${KVER}/${NETMODS} \
-        -name $KNETRM -depth -exec rm -rf {} \;
-    done
-    # Add any dependency modules:
-    for MODULE in $(find ${IMGDIR}/lib/modules/${KVER}/${NETMODS} -type f -exec basename {} .ko \;) ; do
-      modprobe --dirname ${KMODDIR%%/lib/modules/${KVER}} --set-version $KVER --show-depends --ignore-install $MODULE 2>/dev/null |grep "^insmod " |cut -f 2 -d ' ' |while read SRCMOD; do
-        if [ "$(basename $SRCMOD .ko)" != "$MODULE" ]; then
-          cd ${KMODDIR}
-            # Need to strip ${KMODDIR} from the start of ${SRCMOD}:
-            cp -a --parents $(echo $SRCMOD |sed 's|'${KMODDIR}'/|./|' ) \
-              ${IMGDIR}/lib/modules/${KVER}/
-          cd - 1>/dev/null
-        fi
+    for NETMODPATH in ${NETMODS} ; do 
+      cd ${KMODDIR}
+        mkdir -p ${IMGDIR}/lib/modules/${KVER}
+        cp -a --parents ${NETMODPATH} ${IMGDIR}/lib/modules/${KVER}/
+      cd - 1>/dev/null
+      # Prune the ones we do not need:
+      for KNETRM in ${NETEXCL} ; do
+        find ${IMGDIR}/lib/modules/${KVER}/${NETMODPATH} \
+          -name $KNETRM -depth -exec rm -rf {} \;
+      done
+      # Add any dependency modules:
+      for MODULE in $(find ${IMGDIR}/lib/modules/${KVER}/${NETMODPATH} -type f -exec basename {} .ko \;) ; do
+        modprobe --dirname ${KMODDIR%%/lib/modules/${KVER}} --set-version $KVER --show-depends --ignore-install $MODULE 2>/dev/null |grep "^insmod " |cut -f 2 -d ' ' |while read SRCMOD; do
+          if [ "$(basename $SRCMOD .ko)" != "$MODULE" ]; then
+            cd ${KMODDIR}
+              # Need to strip ${KMODDIR} from the start of ${SRCMOD}:
+              cp -a --parents $(echo $SRCMOD |sed 's|'${KMODDIR}'/|./|' ) \
+                ${IMGDIR}/lib/modules/${KVER}/
+            cd - 1>/dev/null
+          fi
+        done
       done
     done
   fi
@@ -409,7 +411,7 @@ extract_initrd() {
 
   cd ${IMGDIR}
     uncompressfs ${IMGFILE} \
-      | cpio -i -d -H newc --no-absolute-filenames
+      | cpio -i -d -m -H newc
 } # End of extract_initrd()
     
 # Modify the extracted initrd and re-pack it:

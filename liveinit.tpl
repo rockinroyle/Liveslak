@@ -292,7 +292,7 @@ if [ -x /sbin/udevd -a -x /sbin/udevadm ]; then
   if [ -n "$NFSHOST" ]; then
     # We also need network devices if NFS root is requested:
     if [ -z "$(/sbin/udevadm trigger --subsystem-match=net --action=add -v -n |rev |cut -d/ -f1 |rev |grep -v lo)" ]; then
-      /sbin/udevadm trigger $DEBUGV
+      /sbin/udevadm trigger --action=add $DEBUGV
     else
       /sbin/udevadm trigger --subsystem-match=net --action=add $DEBUGV
     fi
@@ -308,14 +308,6 @@ if [ ! -d /lib/modules/$(uname -r) ]; then
 elif [ -x ./load_kernel_modules ]; then # use load_kernel_modules script:
   echo "${MARKER}:  Loading kernel modules from initrd image:"
   . ./load_kernel_modules 1>/dev/null 2>/dev/null
-else # load modules (if any) in order:
-  if ls /lib/modules/$(uname -r)/*.*o 1> /dev/null 2> /dev/null ; then
-    echo "${MARKER}:  Loading kernel modules from initrd image:"
-    for module in /lib/modules/$(uname -r)/*.*o ; do
-      /sbin/modprobe $module 1>/dev/null 2>/dev/null
-    done
-    unset module
-  fi
 fi
 
 # Sometimes the devices need extra time to be available.

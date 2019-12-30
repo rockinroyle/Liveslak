@@ -77,12 +77,15 @@ REQTOOLS="blkid cpio extlinux fdisk gdisk isoinfo lsblk mkdosfs sgdisk syslinux"
 # Path to syslinux files:
 if [ -d /usr/share/syslinux ]; then
   SYSLXLOC="/usr/share/syslinux"
+  GPTMBRBIN=$(find $SYSLXLOC -name gptmbr.bin)
 elif [ -d /usr/lib/syslinux ]; then
   SYSLXLOC="/usr/lib/syslinux"
+  GPTMBRBIN=$(find $SYSLXLOC -name gptmbr.bin)
 else
   # Should not happen... in this case we use what we have on the ISO
   # and hope for the best:
-  SYSLXLOC=""
+  SYSLXLOC="/"
+  GPTMBRBIN="gptmbr.bin"
 fi
 
 # Initialize more variables:
@@ -244,7 +247,7 @@ update_initrd() {
   echo "--- Extracting Slackware initrd and adding rootdelay for USB..."
   cd ${IMGDIR}
     uncompressfs ${IMGFILE} \
-      | cpio -i -d -H newc --no-absolute-filenames
+      | cpio -i -d -m -H newc
     
     if [ $REFRESH -eq 1 ]; then
       echo "--- Refreshing Slackware initrd..."
@@ -845,23 +848,25 @@ if [ $EFIBOOT -eq 1 ]; then
   sync
 fi
 
-# No longer needed:
+# No longer needed; umount the USB partitions so we can write a new MBR:
 if mount |grep -qw ${USBMNT} ; then umount ${USBMNT} ; fi
 if mount |grep -qw ${US2MNT} ; then umount ${US2MNT} ; fi
 
-# Unmount/remove stuff:
-cleanup
-
 # Install a GPT compatible MBR record:
-if [ -f ${SYSLXLOC}/gptmbr.bin ]; then
-  cat ${SYSLXLOC}/gptmbr.bin > ${TARGET}
-elif [ -f ${USBMNT}/boot/extlinux/gptmbr.bin ]; then
-  cat ${USBMNT}/boot/extlinux/gptmbr.bin > ${TARGET}
+if [ -n "${GPTMBRBIN}" ]; then
+  if [ -f ${GPTMBRBIN} ]; then
+    cat ${GPTMBRBIN} > ${TARGET}
+  fi
+elif [ -f ${ISOMNT}/boot/syslinux/gptmbr.bin ]; then
+  cat ${ISOMNT}/boot/syslinux/gptmbr.bin > ${TARGET}
 else
   echo "*** Failed to make USB device bootable - 'gptmbr.bin' not found!"
   cleanup
   exit 1 
 fi
+
+# Unmount/remove stuff:
+cleanup
 
 # THE END
 

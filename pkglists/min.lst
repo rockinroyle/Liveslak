@@ -32,6 +32,7 @@ eudev
 file
 findutils
 floppy
+fuse3
 gawk
 gc
 #ghostscript
@@ -89,6 +90,7 @@ mdadm
 mkinitrd
 mlocate
 mozjs52
+mozjs60
 mpfr
 mtr
 nano
@@ -104,7 +106,7 @@ openssl
 openssl10-solibs
 parted
 pciutils
-perl
+#perl
 pkgtools
 plzip
 polkit
